@@ -1,21 +1,29 @@
 #!/Users/brandon/sideprojects/chess-bot/venv/bin/python
 import numpy as np
 
-KNIGHT_MOVE_MASKS = [np.uint64(0) for _ in range(64)]
-BISHOP_MOVE_MASKS = [np.uint64(0) for _ in range(64)]
-ROOK_MOVE_MASKS = [np.uint64(0) for _ in range(64)]
-QUEEN_MOVE_MASKS = [np.uint64(0) for _ in range(64)]
-KING_MOVE_MASKS = [np.uint64(0) for _ in range(64)]
+KNIGHT_MOVE_MASKS = 
+BISHOP_MOVE_MASKS = 
+ROOK_MOVE_MASKS = 
+QUEEN_MOVE_MASKS = 
+KING_MOVE_MASKS = 
 
 
 def init_all():
+    KNIGHT_MOVE_MASKS = [np.uint64(0) for _ in range(64)]
+    BISHOP_MOVE_MASKS = [np.uint64(0) for _ in range(64)]
+    ROOK_MOVE_MASKS = [np.uint64(0) for _ in range(64)]
+    QUEEN_MOVE_MASKS = [np.uint64(0) for _ in range(64)]
+    KING_MOVE_MASKS = [np.uint64(0) for _ in range(64)]
+
     init_knight_move_masks()
     init_bishop_move_masks()
     init_rook_move_masks()
     QUEEN_MOVE_MASKS = [
-        BISHOP_MOVE_MASKS[i] & ROOK_MOVE_MASKS[i]
+        BISHOP_MOVE_MASKS[i] | ROOK_MOVE_MASKS[i]
         for i in range(64)
     ]
+    print(QUEEN_MOVE_MASKS)
+    init_king_move_masks()
 
 
 def init_knight_move_masks():
@@ -55,18 +63,6 @@ def init_rook_move_masks():
     print(ROOK_MOVE_MASKS)
 
 
-def init_pawn_move_masks():
-    pass
-
-
-def fr_to_bit(file, rank):
-    return rank * 8 + file
-
-
-def bit_to_fr(bit):
-    return (bit % 8, bit // 8)
-
-
 def init_bishop_move_masks():
     def generate_bishop_move_mask(bit):
         file, rank = bit_to_fr(bit)
@@ -78,11 +74,43 @@ def init_bishop_move_masks():
                 r = rank + dr * mul
                 if 0 <= f <= 7 and 0 <= r <= 7:
                     mask |= (np.uint64(1) << np.uint64(fr_to_bit(f, r)))
+                else:
+                    break
         return mask
 
     for bit in range(64):
         BISHOP_MOVE_MASKS[bit] = generate_bishop_move_mask(bit)
     print(BISHOP_MOVE_MASKS)
+
+
+def init_king_move_masks():
+    def generate_king_move_mask(bit):
+        file, rank = bit_to_fr(bit)
+        mask = np.uint64(0)
+        deltas = [(0, 1), (1, 1), (1, 0), (1, -1),
+                  (0, -1), (-1, -1), (-1, 0), (-1, 1)]
+        for df, dr in deltas:
+            f = file + df
+            r = rank + dr
+            if 0 <= f <= 7 and 0 <= r <= 7:
+                mask |= (np.uint64(1) << np.uint64(fr_to_bit(f, r)))
+
+    for bit in range(64):
+        KING_MOVE_MASKS[bit] = generate_king_move_mask(bit)
+    print(KING_MOVE_MASKS)
+
+
+def init_pawn_move_masks():
+    pass
+
+
+def fr_to_bit(file, rank):
+    return rank * 8 + file
+
+
+def bit_to_fr(bit):
+    return (bit % 8, bit // 8)
+
 
 
 if __name__ == "__main__":

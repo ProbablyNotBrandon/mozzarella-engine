@@ -9,6 +9,9 @@ class Player(IntEnum):
     WHITE = 0
     BLACK = 1
 
+class Piece(IntEnum):
+    PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING = range(6)
+
 
 class CastlingRights(IntEnum):
     W_KSIDE = 0b0001
@@ -20,26 +23,12 @@ class CastlingRights(IntEnum):
 class Position:
 
     def __init__(self, fen=None):
+        self.bbs = [[np.uint64(0)] * 6, [np.uint64(0)] * 6]
         # Precondition: fen is a valid FEN string
+
         fen = fen if fen else START_FEN
 
         fen = fen.split(" ")
-
-        # Initialize all bitboards to 0
-        self.white_pawns = np.uint64(0)
-        self.white_knights = np.uint64(0)
-        self.white_bishops = np.uint64(0)
-        self.white_rooks = np.uint64(0)
-        self.white_queens = np.uint64(0)
-        self.white_king = np.uint64(0)
-
-        self.black_pawns = np.uint64(0)
-        self.black_knights = np.uint64(0)
-        self.black_bishops = np.uint64(0)
-        self.black_rooks = np.uint64(0)
-        self.black_queens = np.uint64(0)
-        self.black_king = np.uint64(0)
-
         # Iterate over board section of the FEN
         j = 8  # Rank number
         i = 56  # Square number
@@ -47,40 +36,40 @@ class Position:
             for ch in rank:
                 match ch:
                     case "P":
-                        self.white_pawns |= 1 << i
+                        self.bbs[WHITE][PAWNS] |= 1 << i
                         i += 1
                     case "N":
-                        self.white_knights |= 1 << i
+                        self.bbs[WHITE][KNIGHTS] |= 1 << i
                         i += 1
                     case "B":
-                        self.white_bishops |= 1 << i
+                        self.bbs[WHITE][BISHOPS] |= 1 << i
                         i += 1
                     case "R":
-                        self.white_rooks |= 1 << i
+                        self.bbs[WHITE][ROOKS] |= 1 << i
                         i += 1
                     case "Q":
-                        self.white_queens |= 1 << i
+                        self.bbs[WHITE][QUEENS] |= 1 << i
                         i += 1
                     case "K":
-                        self.white_king |= 1 << i
+                        self.bbs[WHITE][KING] |= 1 << i
                         i += 1
                     case "p":
-                        self.black_pawns |= 1 << i
+                        self.bbs[BLACK][PAWNS] |= 1 << i
                         i += 1
                     case "n":
-                        self.black_knights |= 1 << i
+                        self.bbs[BLACK][KNIGHTS] |= 1 << i
                         i += 1
                     case "b":
-                        self.black_bishops |= 1 << i
+                        self.bbs[BLACK][BISHOPS] |= 1 << i
                         i += 1
                     case "r":
-                        self.black_rooks |= 1 << i
+                        self.bbs[BLACK][ROOKS] |= 1 << i
                         i += 1
                     case "q":
-                        self.black_queens |= 1 << i
+                        self.bbs[BLACK][QUEENS] |= 1 << i
                         i += 1
                     case "k":
-                        self.black_king |= 1 << i
+                        self.bbs[BLACK][KING] |= 1 << i
                         i += 1
                     # Otherwise we have encountered a digit
                     case _ if ch.isdigit():
