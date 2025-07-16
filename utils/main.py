@@ -102,45 +102,6 @@ def generate_bishop_moves(pos):
 
 
 def generate_rook_moves(pos):
-    """
-    rook_bits = bitscan(pos.bbs[pos.player_to_move][Piece.ROOK])
-    move_list = []
-    occupied = np.uint64(0)
-    for bb in pos.bbs[pos.player_to_move]:
-        occupied |= bb
-
-    opponent_occupied = np.uint64(0)
-    for bb in pos.bbs[1 - pos.player_to_move]:
-        opponent_occupied |= bb
-
-    for rook_bit in rook_bits:
-        # all_rook_moves = ROOK_MOVE_MASKS[rook_bit]
-        # Vertical
-        for dr in [-8, 8]:
-            for mul in range(1, 8):
-                new_bit = rook_bit + mul * dr
-                if not (0 <= new_bit <= 63) or (occupied & (1 << new_bit)):
-                    break
-                else:
-                    move_list.append(Move(rook_bit, new_bit))
-                    if opponent_occupied & (1 << new_bit):
-                        break
-
-        # Horizontal
-        for df in [-1, 1]:
-            _, rank = bit_to_fr(rook_bit)
-            for mul in range(1, 8):
-                new_bit = rook_bit + df * mul
-                if (not (0 <= new_bit <= 63) or new_bit // 8 != rank
-                    or (occupied & (1 << new_bit))):
-                    break
-                else:
-                    move_list.append(Move(rook_bit, new_bit))
-                    if opponent_occupied & (1 << new_bit):
-                        break
-
-    return move_list
-    """
     return generate_sliding_moves(pos, Piece.ROOK, [-8, -1, 1, 8])
 
 
