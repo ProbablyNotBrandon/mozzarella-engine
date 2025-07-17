@@ -23,6 +23,7 @@ class Move():
 
 
 def main():
+
     # Generate starting position of the game
     p = Position()
     moves = generate_moves(p)
@@ -38,6 +39,43 @@ def generate_moves(pos):
     moves += generate_rook_moves(pos)
     moves += generate_queen_moves(pos)
     moves += generate_king_moves(pos)
+    moves += generate_castle_moves(pos)
+    return moves
+
+
+def generate_castle_moves(pos: Position):
+    w_qs_castle_mask = np.uint64((1 << 1) | (1 << 2) | (1 << 3))
+    w_ks_castle_mask = np.uint64((1 << 5) | (1 << 6))
+
+    b_qs_castle_mask = np.uint64((1 << 57) | (1 << 58) | (1 << 59))
+    b_ks_castle_mask = np.uint64((1 << 62) | (1 << 61))
+
+    player = pos.player_to_move
+    opponent = 1 - player
+
+    occupied = np.uint64(0)
+    for bb in pos.bbs[player]:
+        occupied |= bb
+
+    opponent_occupied = np.uint64(0)
+    for bb in pos.bbs[opponent]:
+        occupied |= bb
+
+    all_occupied = occupied | opponent_occupied
+
+    moves = []
+
+    if player == Player.WHITE:
+        if pos.castling_rights & CastlingRights.W_QSIDE and not w_qs_castle_mask | all_occupied:
+            moves.append(Move(4, 6))
+        if pos.castling_rights & CastlingRights.W_KSIDE and not w_ks_castle_mask | all_occupied:
+            moves.append(Move(4, 1))
+    elif player == Player.BLACK:
+        if pos.castling_rights & CastlingRights.B_QSIDE and not b_qs_castle_mask | all_occupied:
+            moves.append(Move(60, 57))
+        if pos.castling_rights & CastlingRights.B_KSIDE and not b_ks_castle_mask | all_occupied:
+            moves.append(Move(60, 62))
+
     return moves
 
 
