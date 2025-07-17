@@ -1,29 +1,18 @@
 #!/Users/brandon/sideprojects/chess-bot/venv/bin/python
 import numpy as np
+from position import Player
 
-KNIGHT_MOVE_MASKS = 
-BISHOP_MOVE_MASKS = 
-ROOK_MOVE_MASKS = 
-QUEEN_MOVE_MASKS = 
-KING_MOVE_MASKS = 
+
+PAWN_ADVANCE_MASKS = [[np.uint64(0) for _ in range(64)], [np.uint64(0) for _ in range(64)]]
+PAWN_ATTACK_MASKS = [[np.uint64(0) for _ in range(64)], [np.uint64(0) for _ in range(64)]]
+KNIGHT_MOVE_MASKS = [np.uint64(0) for _ in range(64)]
+KING_MOVE_MASKS = [np.uint64(0) for _ in range(64)]
 
 
 def init_all():
-    KNIGHT_MOVE_MASKS = [np.uint64(0) for _ in range(64)]
-    BISHOP_MOVE_MASKS = [np.uint64(0) for _ in range(64)]
-    ROOK_MOVE_MASKS = [np.uint64(0) for _ in range(64)]
-    QUEEN_MOVE_MASKS = [np.uint64(0) for _ in range(64)]
-    KING_MOVE_MASKS = [np.uint64(0) for _ in range(64)]
-
     init_knight_move_masks()
-    init_bishop_move_masks()
-    init_rook_move_masks()
-    QUEEN_MOVE_MASKS = [
-        BISHOP_MOVE_MASKS[i] | ROOK_MOVE_MASKS[i]
-        for i in range(64)
-    ]
-    print(QUEEN_MOVE_MASKS)
     init_king_move_masks()
+    init_pawn_masks()
 
 
 def init_knight_move_masks():
@@ -45,42 +34,8 @@ def init_knight_move_masks():
 
     for bit in range(64):
         KNIGHT_MOVE_MASKS[bit] = generate_knight_move_mask(bit)
+    print("KNIGHTS")
     print(KNIGHT_MOVE_MASKS)
-
-
-def init_rook_move_masks():
-    def generate_rook_move_mask(bit):
-        file, rank = bit_to_fr(bit)
-        mask = np.uint64(0)
-        for i in range(8):
-            mask |= (np.uint64(1) << np.uint64(file + i * 8))
-        for i in range(8):
-            mask |= (np.uint64(1) << np.uint64(rank * 8 + i))
-        return mask
-
-    for bit in range(64):
-        ROOK_MOVE_MASKS[bit] = generate_rook_move_mask(bit)
-    print(ROOK_MOVE_MASKS)
-
-
-def init_bishop_move_masks():
-    def generate_bishop_move_mask(bit):
-        file, rank = bit_to_fr(bit)
-        mask = np.uint64(0)
-        deltas = [(1, 1), (1, -1), (-1, 1), (-1, -1)]
-        for df, dr in deltas:
-            for mul in range(1, 7):
-                f = file + df * mul
-                r = rank + dr * mul
-                if 0 <= f <= 7 and 0 <= r <= 7:
-                    mask |= (np.uint64(1) << np.uint64(fr_to_bit(f, r)))
-                else:
-                    break
-        return mask
-
-    for bit in range(64):
-        BISHOP_MOVE_MASKS[bit] = generate_bishop_move_mask(bit)
-    print(BISHOP_MOVE_MASKS)
 
 
 def init_king_move_masks():
@@ -94,14 +49,67 @@ def init_king_move_masks():
             r = rank + dr
             if 0 <= f <= 7 and 0 <= r <= 7:
                 mask |= (np.uint64(1) << np.uint64(fr_to_bit(f, r)))
+        return mask
 
     for bit in range(64):
         KING_MOVE_MASKS[bit] = generate_king_move_mask(bit)
+    print("KING")
     print(KING_MOVE_MASKS)
 
 
-def init_pawn_move_masks():
-    pass
+def init_pawn_masks():
+    def generate_white_pawn_advance_move_mask(bit):
+        _, rank = bit_to_fr(bit)
+        mask = np.uint64(0)
+
+        if 1 <= rank <= 6:
+            mask |= (1 << (bit + 8))
+            if rank == 1:
+                mask |= (1 << (bit + 16))
+
+        return mask
+
+    def generate_black_pawn_advance_move_mask(bit):
+        _, rank = bit_to_fr(bit)
+        mask = np.uint64(0)
+
+        if 1 <= rank <= 6:
+            mask |= (1 << (bit - 8))
+            if rank == 6:
+                mask |= (1 << (bit - 16))
+
+        return mask
+
+    def generate_white_pawn_attack_move_mask(bit):
+        file, _ = bit_to_fr(bit)
+        mask = np.uint64(0)
+
+        if file != 7:
+            mask |= (1 << (bit + 9))
+        if file != 0:
+            mask |= (1 << (bit + 7))
+        return mask
+
+    def generate_black_pawn_attack_move_mask(bit):
+        file, _ = bit_to_fr(bit)
+        mask = np.uint64(0)
+
+        if file != 7:
+            mask |= (1 << (bit - 7))
+        if file != 0:
+            mask |= (1 << (bit - 9))
+        return mask
+
+    for bit in range(8, 56):
+        PAWN_ADVANCE_MASKS[Player.WHITE][bit] = generate_white_pawn_advance_move_mask(bit)
+        PAWN_ADVANCE_MASKS[Player.BLACK][bit] = generate_black_pawn_advance_move_mask(bit)
+        PAWN_ATTACK_MASKS[Player.WHITE][bit] = generate_white_pawn_attack_move_mask(bit)
+        PAWN_ATTACK_MASKS[Player.BLACK][bit] = generate_black_pawn_attack_move_mask(bit)
+    
+    print("PAWN ADVANCES")
+    print(PAWN_ADVANCE_MASKS)
+    print("PAWN ATTACKS")
+    print(PAWN_ATTACK_MASKS)
 
 
 def fr_to_bit(file, rank):
@@ -110,7 +118,6 @@ def fr_to_bit(file, rank):
 
 def bit_to_fr(bit):
     return (bit % 8, bit // 8)
-
 
 
 if __name__ == "__main__":
