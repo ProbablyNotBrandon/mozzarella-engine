@@ -36,40 +36,40 @@ class Position:
             for ch in rank:
                 match ch:
                     case "P":
-                        self.bbs[WHITE][PAWNS] |= 1 << i
+                        self.bbs[Player.WHITE][Piece.PAWN] |= 1 << i
                         i += 1
                     case "N":
-                        self.bbs[WHITE][KNIGHTS] |= 1 << i
+                        self.bbs[Player.WHITE][Piece.KNIGHT] |= 1 << i
                         i += 1
                     case "B":
-                        self.bbs[WHITE][BISHOPS] |= 1 << i
+                        self.bbs[Player.WHITE][Piece.BISHOP] |= 1 << i
                         i += 1
                     case "R":
-                        self.bbs[WHITE][ROOKS] |= 1 << i
+                        self.bbs[Player.WHITE][Piece.ROOK] |= 1 << i
                         i += 1
                     case "Q":
-                        self.bbs[WHITE][QUEENS] |= 1 << i
+                        self.bbs[Player.WHITE][Piece.QUEEN] |= 1 << i
                         i += 1
                     case "K":
-                        self.bbs[WHITE][KING] |= 1 << i
+                        self.bbs[Player.WHITE][Piece.KING] |= 1 << i
                         i += 1
                     case "p":
-                        self.bbs[BLACK][PAWNS] |= 1 << i
+                        self.bbs[Player.BLACK][Piece.PAWN] |= 1 << i
                         i += 1
                     case "n":
-                        self.bbs[BLACK][KNIGHTS] |= 1 << i
+                        self.bbs[Player.BLACK][Piece.KNIGHT] |= 1 << i
                         i += 1
                     case "b":
-                        self.bbs[BLACK][BISHOPS] |= 1 << i
+                        self.bbs[Player.BLACK][Piece.BISHOP] |= 1 << i
                         i += 1
                     case "r":
-                        self.bbs[BLACK][ROOKS] |= 1 << i
+                        self.bbs[Player.BLACK][Piece.ROOK] |= 1 << i
                         i += 1
                     case "q":
-                        self.bbs[BLACK][QUEENS] |= 1 << i
+                        self.bbs[Player.BLACK][Piece.QUEEN] |= 1 << i
                         i += 1
                     case "k":
-                        self.bbs[BLACK][KING] |= 1 << i
+                        self.bbs[Player.BLACK][Piece.KING] |= 1 << i
                         i += 1
                     # Otherwise we have encountered a digit
                     case _ if ch.isdigit():

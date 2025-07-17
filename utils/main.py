@@ -3,11 +3,23 @@
 from position import Position, CastlingRights, Player, Piece
 from move_masks import *
 
+PAWN_ADVANCE_MASKS = np.load("pawn_advance_masks.npy")
+PAWN_ATTACK_MASKS = np.load("pawn_attack_masks.npy")
+KNIGHT_MOVE_MASKS = np.load("knight_move_masks.npy")
+KING_MOVE_MASKS = np.load("king_move_masks.npy")
+
 
 class Move():
     def __init__(self, src=None, dst=None):
         self.src = src
         self.dst = dst
+
+    def __repr__(self):
+        src_file, src_rank = bit_to_fr(self.src)
+        dst_file, dst_rank = bit_to_fr(self.dst)
+        src_rank += 1
+        dst_rank += 1
+        return f"Move<{chr(src_file + ord('a'))}{src_rank} to {chr(dst_file + ord('a'))}{dst_rank}>"
 
 
 def main():
@@ -15,6 +27,7 @@ def main():
     p = Position()
     moves = generate_moves(p)
     print(moves)
+    print(f"Num moves: {len(moves)}")
 
 
 def generate_moves(pos):
@@ -46,8 +59,7 @@ def generate_pawn_moves(pos):
     move_list = []
 
     for pawn_bit in pawn_bits:
-        all_pawn_advances = (
-                PAWN_ADVANCE_MASKS[player][pawn_bit] & ~all_occupied)
+        all_pawn_advances = np.uint64(PAWN_ADVANCE_MASKS[player][pawn_bit] & ~all_occupied)
 
         # Edge case: a pawn cannot advance two steps if obstructed
         if player == Player.WHITE and 8 <= pawn_bit <= 15:
@@ -86,8 +98,8 @@ def generate_knight_moves(pos):
     knight_bits = bitscan(pos.bbs[player][Piece.KNIGHT])
 
     for knight_bit in knight_bits:
-        all_knight_moves = KNIGHT_MOVE_MASKS
-        all_knight_moves |= occupied
+        all_knight_moves = KNIGHT_MOVE_MASKS[knight_bit]
+        all_knight_moves &= ~occupied
 
         dsts = bitscan(all_knight_moves)
 
@@ -163,15 +175,15 @@ def generate_sliding_moves(pos: Position, piece: Piece, deltas: list[int]):
 
 def bitscan(bitboard: np.uint64) -> list[int]:
     """
-    This function is magic. I don't know how it works.
+    Returns a list of indices (0–63) of the bits set in the bitboard.
     """
     result = []
-    b = np.uint64(bitboard)
+    b = int(bitboard)  # Convert to Python int for bit manipulation
     while b:
         lsb = b & -b  # isolate least significant bit
-        index = int(np.log2(lsb))  # get bit index (0..63)
+        index = lsb.bit_length() - 1  # equivalent to log2(lsb)
         result.append(index)
-        b ^= lsb  # remove that bit
+        b ^= lsb  # remove the bit
     return result
 
 

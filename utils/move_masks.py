@@ -13,6 +13,11 @@ def init_all():
     init_knight_move_masks()
     init_king_move_masks()
     init_pawn_masks()
+    np.save("pawn_advance_masks.npy", PAWN_ADVANCE_MASKS)
+    np.save("pawn_attack_masks.npy", PAWN_ATTACK_MASKS)
+    np.save("knight_move_masks.npy", KNIGHT_MOVE_MASKS)
+    np.save("king_move_masks.npy", KING_MOVE_MASKS)
+
 
 
 def init_knight_move_masks():
