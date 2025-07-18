@@ -1,12 +1,13 @@
 #!/Users/brandon/sideprojects/chess-bot/venv/bin/python
 import numpy as np
 from position import Player
+from chessutils import *
 
 
-PAWN_ADVANCE_MASKS = [[np.uint64(0) for _ in range(64)], [np.uint64(0) for _ in range(64)]]
-PAWN_ATTACK_MASKS = [[np.uint64(0) for _ in range(64)], [np.uint64(0) for _ in range(64)]]
-KNIGHT_MOVE_MASKS = [np.uint64(0) for _ in range(64)]
-KING_MOVE_MASKS = [np.uint64(0) for _ in range(64)]
+PAWN_ADVANCE_MASKS = np.load("pawn_advance_masks.npy")
+PAWN_ATTACK_MASKS = np.load("pawn_attack_masks.npy")
+KNIGHT_MOVE_MASKS = np.load("knight_move_masks.npy")
+KING_MOVE_MASKS = np.load("king_move_masks.npy")
 
 
 def init_all():
@@ -21,6 +22,7 @@ def init_all():
 
 
 def init_knight_move_masks():
+    KNIGHT_MOVE_MASKS = [np.uint64(0) for _ in range(64)]
     def generate_knight_move_mask(bit):
         file, rank = bit_to_fr(bit)
 
@@ -44,6 +46,7 @@ def init_knight_move_masks():
 
 
 def init_king_move_masks():
+    KING_MOVE_MASKS = [np.uint64(0) for _ in range(64)]
     def generate_king_move_mask(bit):
         file, rank = bit_to_fr(bit)
         mask = np.uint64(0)
@@ -63,6 +66,9 @@ def init_king_move_masks():
 
 
 def init_pawn_masks():
+    
+    PAWN_ADVANCE_MASKS = [[np.uint64(0) for _ in range(64)], [np.uint64(0) for _ in range(64)]]
+    PAWN_ATTACK_MASKS = [[np.uint64(0) for _ in range(64)], [np.uint64(0) for _ in range(64)]]
     def generate_white_pawn_advance_move_mask(bit):
         _, rank = bit_to_fr(bit)
         mask = np.uint64(0)
@@ -115,14 +121,6 @@ def init_pawn_masks():
     print(PAWN_ADVANCE_MASKS)
     print("PAWN ATTACKS")
     print(PAWN_ATTACK_MASKS)
-
-
-def fr_to_bit(file, rank):
-    return rank * 8 + file
-
-
-def bit_to_fr(bit):
-    return (bit % 8, bit // 8)
 
 
 if __name__ == "__main__":
