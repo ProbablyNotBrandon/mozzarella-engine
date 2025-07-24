@@ -1,4 +1,3 @@
-from chessutils import *
 import numpy as np
 
 # Bit width of each field:

@@ -1,7 +1,9 @@
 import numpy as np
 
+
 def u64(x: int) -> np.uint64:
     return np.uint64(x & 0xFFFFFFFFFFFFFFFF)
+
 
 def bitscan(bitboard: np.uint64) -> list[int]:
     """
@@ -23,4 +25,3 @@ def fr_to_bit(file, rank):
 
 def bit_to_fr(bit):
     return (bit % 8, bit // 8)
-

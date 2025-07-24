@@ -1,8 +1,10 @@
 #!/Users/brandon/sideprojects/chess-bot/venv/bin/python
-import numpy as np
-from move import *
+
 from enum import IntEnum
-from chessutils import bit_to_fr, fr_to_bit, bitscan, u64
+import numpy as np
+
+from chess_utils import u64
+from move import *
 
 START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 

@@ -1,7 +1,15 @@
-from position import Position, CastlingRights, Player, Piece
-from move_masks import *
+#!/Users/brandon/sideprojects/chess-bot/venv/bin/python
+import numpy as np
+from chess_utils import *
 from move import *
-from chessutils import *
+from move_masks import *
+from position import Position, CastlingRights, Player, Piece
+
+
+PAWN_ADVANCE_MASKS = np.load("move_masks/pawn_advance_masks.npy")
+PAWN_ATTACK_MASKS = np.load("move_masks/pawn_attack_masks.npy")
+KNIGHT_MOVE_MASKS = np.load("move_masks/knight_move_masks.npy")
+KING_MOVE_MASKS = np.load("move_masks/king_move_masks.npy")
 
 
 def generate_moves(pos: Position):
@@ -206,7 +214,7 @@ def main():
     p = Position()
     moves = generate_moves(p)
     print(p)
-    print("Number of moves: {len(moves)}")
+    print(f"Number of moves: {len(moves)}")
     print([move_to_string(m) for m in moves])
 
 

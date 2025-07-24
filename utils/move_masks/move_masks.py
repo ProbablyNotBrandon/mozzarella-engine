@@ -1,7 +1,7 @@
 #!/Users/brandon/sideprojects/chess-bot/venv/bin/python
 import numpy as np
 from position import Player
-from chessutils import *
+from chess_utils import *
 
 
 PAWN_ADVANCE_MASKS = np.load("pawn_advance_masks.npy")
