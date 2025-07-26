@@ -37,6 +37,8 @@ QUEEN_PROMO_CAPTURE     = 0b1111
 
 
 def encode_move(from_sq, to_sq, piece, captured=0, promotion=0, flags=0) -> np.uint32:
+    if captured:
+        flags |= CAPTURE
     return np.uint32(from_sq |
                      (to_sq << 6) |
                      (piece << 12) |
