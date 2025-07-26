@@ -25,7 +25,8 @@ def perft(pos: Position, depth: int):
         i = 0
         for move in moves:
             pos.move(move)
-            i += perft(pos, depth - 1)
+            p = perft(pos, depth - 1)
+            i += p
             pos.unmove(move)
     except IndexError:
         pass
@@ -35,7 +36,7 @@ def perft(pos: Position, depth: int):
 
 if __name__ == "__main__":
     exp_perft = [1, 20, 400, 8902, 197281, 4865609, 119060324, 3195901860]
-    p = Position()
+    p = Position("rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR b KQkq - 0 1")
     start = datetime.now()
     for i in range(DEPTH + 1):
         print(f"Depth: {i}\tNodes: {perft(p, i)}\tExpected: {exp_perft[i]}")

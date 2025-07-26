@@ -54,14 +54,14 @@ def generate_castle_moves(pos: Position):
 
     if pos.player_to_move == Player.WHITE:
         if not (pos.castling_rights & (CastlingRights.WHITE_KING | CastlingRights.WHITE_QROOK)) and not (w_qs_castle_mask & all_occupied):
-            moves.append(encode_move(4, 6, Piece.KING, flags=QUEEN_CASTLE))
+            moves.append(encode_move(4, 2, Piece.KING, flags=QUEEN_CASTLE))
         if not (pos.castling_rights & (CastlingRights.WHITE_KING | CastlingRights.WHITE_KROOK)) and not (w_ks_castle_mask & all_occupied):
-            moves.append(encode_move(4, 1, Piece.KING, flags=KING_CASTLE))
+            moves.append(encode_move(4, 6, Piece.KING, flags=KING_CASTLE))
     elif pos.player_to_move == Player.BLACK:
         if not (pos.castling_rights & (CastlingRights.BLACK_KING | CastlingRights.BLACK_QROOK)) and not (b_qs_castle_mask & all_occupied):
-            moves.append(encode_move(4, 1, Piece.KING, flags=QUEEN_CASTLE))
+            moves.append(encode_move(60, 58, Piece.KING, flags=QUEEN_CASTLE))
         if not (pos.castling_rights & (CastlingRights.BLACK_KING | CastlingRights.BLACK_KROOK)) and not (b_ks_castle_mask & all_occupied):
-            moves.append(encode_move(4, 1, Piece.KING, flags=KING_CASTLE))
+            moves.append(encode_move(60, 62, Piece.KING, flags=KING_CASTLE))
 
     return moves
 
@@ -71,13 +71,8 @@ def generate_pawn_moves(pos):
     opponent = 1 - player
     pawn_bits = bitscan(pos.bbs[player][Piece.PAWN])
 
-    occupied = np.uint64(0)
-    for bb in pos.bbs[player]:
-        occupied |= bb
-
-    opponent_occupied = np.uint64(0)
-    for bb in pos.bbs[opponent]:
-        opponent_occupied |= bb
+    occupied = pos.get_player_occupied(player)
+    opponent_occupied = pos.get_player_occupied(opponent)
 
     all_occupied = occupied | opponent_occupied
 
@@ -117,13 +112,8 @@ def generate_knight_moves(pos):
     player = pos.player_to_move
     opponent = 1 - player
 
-    occupied = np.uint64(0)
-    for bb in pos.bbs[player]:
-        occupied |= bb
-
-    opponent_occupied = np.uint64(0)
-    for bb in pos.bbs[opponent]:
-        opponent_occupied |= bb
+    occupied = pos.get_player_occupied(player)
+    opponent_occupied = pos.get_player_occupied(opponent)
 
     move_list = []
     knight_bits = bitscan(pos.bbs[player][Piece.KNIGHT])
@@ -170,12 +160,9 @@ def generate_king_moves(pos: Position):
 
     # Get the pseudolegal move bitboard for the king's current position
     all_king_moves = KING_MOVE_MASKS[king_bit]
-    occupied = np.uint64(0)
-    for bb in pos.bbs[pos.player_to_move]:
-        occupied |= bb
-    opponent_occupied = np.uint64(0)
-    for bb in pos.bbs[1 - pos.player_to_move]:
-        opponent_occupied |= bb
+
+    occupied = pos.get_player_occupied(player)
+    opponent_occupied = pos.get_player_occupied(1 - player)
 
     new_moves = all_king_moves & ~occupied
     move_list = []
@@ -204,34 +191,45 @@ def generate_sliding_moves(pos: Position, piece: Piece, deltas: list[int]):
     piece_bits = bitscan(pos.bbs[player][piece])
 
     for piece_bit in piece_bits:
-        current_bit = piece_bit
+        piece_file = piece_bit % 8
         for d in deltas:
-            for _ in range(1, 8):
-                dst_bit = current_bit + d
+            last_file = piece_file
+            for step in range(1, 8):
+                dst_bit = piece_bit + d * step
+                dst_file = dst_bit % 8
 
-                if not (0 <= dst_bit <= 63) or (occupied & (1 << dst_bit)):
+                # Stop at board bounds or own occupied square
+                if not (0 <= dst_bit <= 63):
                     break
-                if (d in [-9, -7, -1, 1, 7, 9]
-                    and abs((current_bit % 8) - (dst_bit % 8)) > 1):
+                if (d in (-9, -7, -1, 1, 7, 9) # check could be improved
+                    and abs(dst_file - last_file) != 1):
                     break
+                if occupied & (1 << dst_bit):
+                    break
+                
+                #
+                if (opponent_occupied & (1 << dst_bit)):
+                    for candidate in Piece:
+                        if pos.bbs[opponent][candidate] & np.uint64(1 << dst_bit):
+                            move_list.append(encode_move(piece_bit, dst_bit, piece, captured=candidate))
+                            break
                 else:
-                    if (opponent_occupied & (1 << dst_bit)):
-                        for candidate in Piece:
-                            if pos.bbs[opponent][candidate] & np.uint64(1 << dst_bit):
-                                move_list.append(encode_move(piece_bit, dst_bit, piece, captured=candidate))
-                                break
-                        break
                     move_list.append(encode_move(piece_bit, dst_bit, piece))
-
-                current_bit = dst_bit
+                last_file = dst_file
 
     return move_list
 
 
 def is_in_check(p: Position, player: Player) -> bool:
     king_sq = bitscan(p.bbs[player][Piece.KING])[0]
-    mvs = generate_moves(p)
-    for mv in mvs:
+    opponent = 1 - player
+
+    original_player = p.player_to_move
+    p.player_to_move = opponent
+    opponent_moves = generate_moves(p)
+    p.player_to_move = original_player
+
+    for mv in opponent_moves:
         if get_to_sq(mv) == king_sq:
             return True
     return False
@@ -315,6 +313,12 @@ def main():
     print("MOVING FIRST MOVE")
     p.move(moves[1])
 
+    moves = generate_legal_moves(p)
+    print(p)
+    print(f"Number of moves: {len(moves)}")
+    print([move_to_string(m) for m in moves])
+
+    p.move(moves[9])
     moves = generate_legal_moves(p)
     print(p)
     print(f"Number of moves: {len(moves)}")
