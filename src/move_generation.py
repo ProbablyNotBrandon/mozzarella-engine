@@ -29,15 +29,30 @@ def generate_moves(pos: Position):
 
     return moves
 
-def generate_legal_moves(p: Position):
+def generate_legal_moves(p: Position, print_out=True):
+    moves = []
+    moves += generate_pawn_moves(p)
+    moves += generate_knight_moves(p)
+    moves += generate_bishop_moves(p)
+    moves += generate_rook_moves(p)
+    moves += generate_queen_moves(p)
+    
+    moves += generate_legal_king_moves(p)
+
+    moves += generate_castle_moves(p)
+
     player = p.player_to_move
-    moves = generate_moves(p)
+
     legal_moves = []
     for move in moves:
         p.move(move)
         if not is_in_check(p, Player(player)):
             legal_moves.append(move)
         p.unmove(move)
+
+    if print_out:
+        print([f"{i}: {Move(legal_moves[i])}" for i in range(len(legal_moves))])
+
     return legal_moves
 
 
@@ -149,7 +164,7 @@ def generate_queen_moves(pos):
                                   [-9, -8, -7, -1, 1, 7, 8, 9])
 
 
-def generate_king_moves(pos: Position):
+def generate_legal_king_moves(pos: Position):
     player = pos.player_to_move
 
     # Get the unsafe squares that would put the king in check
@@ -180,6 +195,32 @@ def generate_king_moves(pos: Position):
     return move_list
 
 
+def generate_king_moves(p: Position):
+    player = p.player_to_move
+
+    king_sq = bitscan(p.bbs[player][Piece.KING])[0]
+    king_move_mask = KING_MOVE_MASKS[king_sq] & ~(p.get_player_occupied(player))
+
+    opp_occupied = p.get_player_occupied(1 - player)
+    
+    captures = king_move_mask & opp_occupied
+    non_captures = king_move_mask & ~(opp_occupied)
+
+    moves = []
+
+    for to_sq in bitscan(captures):
+        to_sq_mask = u64(1 << to_sq)
+        for opp_piece in Piece:
+            if to_sq_mask & p.bbs[1 - player][opp_piece]:
+                moves.append(encode_move(king_sq, to_sq, Piece.KING, captured=opp_piece, flags=CAPTURE))
+                break
+
+    for to_sq in bitscan(non_captures):
+        moves.append(encode_move(king_sq, to_sq, Piece.KING))
+    
+    return moves
+
+
 def generate_sliding_moves(pos: Position, piece: Piece, deltas: list[int]):
     player = pos.player_to_move
     opponent = 1 - player
@@ -207,7 +248,7 @@ def generate_sliding_moves(pos: Position, piece: Piece, deltas: list[int]):
                 if occupied & (1 << dst_bit):
                     break
                 
-                #
+                # Encode captured piece if applicable
                 if (opponent_occupied & (1 << dst_bit)):
                     for candidate in Piece:
                         if pos.bbs[opponent][candidate] & np.uint64(1 << dst_bit):
@@ -222,16 +263,49 @@ def generate_sliding_moves(pos: Position, piece: Piece, deltas: list[int]):
 
 def is_in_check(p: Position, player: Player) -> bool:
     king_sq = bitscan(p.bbs[player][Piece.KING])[0]
+    king_file = king_sq % 8
     opponent = 1 - player
 
-    original_player = p.player_to_move
-    p.player_to_move = opponent
-    opponent_moves = generate_moves(p)
-    p.player_to_move = original_player
+    occupied = p.get_player_occupied(player)
 
-    for mv in opponent_moves:
-        if get_to_sq(mv) == king_sq:
+    # Check for knight attacks
+    if KNIGHT_MOVE_MASKS[king_sq] & p.bbs[opponent][Piece.KNIGHT]:
+        return True
+    
+    # Check for pawn attacks
+    # TODO: Fix this ridiculous sh-
+    # (Likely could just precalculate this)
+    shift = lambda x, y: x >> y if player == Player.WHITE else y >> x
+    pawn_attack_deltas = [7, 9][::(-1, 1)[player]]
+    if king_file == 0:
+        pawn_attack_deltas.remove(pawn_attack_deltas[0])
+    if king_file == 7:
+        pawn_attack_deltas.remove(pawn_attack_deltas[1])
+    for d in pawn_attack_deltas:
+        if shift(p.bbs[player][Piece.KING], d) & p.bbs[opponent][Piece.PAWN]:
             return True
+    
+    # Check for sliding piece checks
+    opp_bishops_and_queens = p.bbs[opponent][Piece.BISHOP] | p.bbs[opponent][Piece.QUEEN]
+    opp_rooks_and_queens = p.bbs[opponent][Piece.ROOK] | p.bbs[opponent][Piece.QUEEN]
+
+    for deltas, opp_mask in (((-9, -7, 7, 9), opp_bishops_and_queens), ((-8, -1, 1, 8), opp_rooks_and_queens)):
+        for d in deltas:
+            curr_file = king_file
+            for step in range(1, 8):
+                to_sq = king_sq + d * step
+                to_file = to_sq % 8
+                
+                if not (0 <= to_sq <= 63):
+                    break
+                if abs(to_file - curr_file) > 1:
+                    break
+                if occupied & u64(1 << to_sq):
+                    break
+                
+                if opp_mask & u64(1 << to_sq):
+                    return True
+
     return False
 
 
@@ -304,27 +378,26 @@ def generate_king_unsafe_squares(p: Position, player: Player) -> np.uint64:
 
 
 def main():
-    p = Position()
-    moves = generate_legal_moves(p)
-    print(p)
-    print(f"Number of moves: {len(moves)}")
-    print([move_to_string(m) for m in moves])
+    pass
+    # p = Position()
+    # moves = generate_legal_moves(p)
+    # print(p)
+    # print(f"Number of moves: {len(moves)}")
+    # print([move_to_string(m) for m in moves])
 
-    print("MOVING FIRST MOVE")
-    p.move(moves[1])
+    # print("MOVING FIRST MOVE")
+    # p.move(moves[1])
 
-    moves = generate_legal_moves(p)
-    print(p)
-    print(f"Number of moves: {len(moves)}")
-    print([move_to_string(m) for m in moves])
+    # moves = generate_legal_moves(p)
+    # print(p)
+    # print(f"Number of moves: {len(moves)}")
+    # print([move_to_string(m) for m in moves])
 
-    p.move(moves[9])
-    moves = generate_legal_moves(p)
-    print(p)
-    print(f"Number of moves: {len(moves)}")
-    print([move_to_string(m) for m in moves])
-
-
+    # p.move(moves[9])
+    # moves = generate_legal_moves(p)
+    # print(p)
+    # print(f"Number of moves: {len(moves)}")
+    # print([move_to_string(m) for m in moves])
 
 
 if __name__ == "__main__":

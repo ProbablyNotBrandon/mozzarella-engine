@@ -10,23 +10,19 @@ DEPTH = 5
 if len(sys.argv) == 2:
     DEPTH = int(sys.argv[1])
 
-f = open("moves.log", "w")
-
 
 def perft(pos: Position, depth: int):
     i = 0
     try:
         if depth == 0:
             return 1
-        moves = generate_legal_moves(pos)
-        # print([Move(move) for move in moves])
+        moves = generate_legal_moves(pos, print_out=False)
         if depth == 1:
             return len(moves)
         i = 0
         for move in moves:
             pos.move(move)
-            p = perft(pos, depth - 1)
-            i += p
+            i += perft(pos, depth - 1)
             pos.unmove(move)
     except IndexError:
         pass
