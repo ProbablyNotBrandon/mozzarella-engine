@@ -101,10 +101,10 @@ def move_to_string(move: np.uint32) -> str:
         QUEEN_PROMO_CAPTURE: "Queen Promo Capture",
     }
 
-    def square_to_coord(sq):
-        file = chr((sq % 8) + ord('a'))
-        rank = str((sq // 8) + 1)
-        return file + rank
+    return f"{square_to_coord(from_sq)}{square_to_coord(to_sq)} ({flag_names.get(flags, f'Unknown ({flags})')})"
 
-    return f"[{flag_names.get(flags, f'Unknown ({flags})')}] {square_to_coord(from_sq)} → {square_to_coord(to_sq)}"
 
+def square_to_coord(sq):
+    file = chr((sq % 8) + ord('a'))
+    rank = str((sq // 8) + 1)
+    return file + rank

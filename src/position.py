@@ -3,7 +3,7 @@
 from enum import IntEnum
 import numpy as np
 
-from chess_utils import u64
+from chess_utils import u64, bit_to_fr
 from move import *
 
 START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
@@ -47,6 +47,8 @@ piece_to_ch = {
 
 
 class Position:
+    # The player to move
+    player_to_move: Player
 
     def __init__(self, fen=None):
 
@@ -121,14 +123,23 @@ class Position:
         else:
             self.bbs[self.player_to_move][piece_moved] |= to_mask
 
-        captured_piece = get_captured(move)
-        if captured_piece:
+        
+        if get_flags(move) == CAPTURE:
+            captured_piece = get_captured(move)
+            if not to_mask:
+                print("NO TO MASK")
+            if not self.bbs[1 - self.player_to_move][captured_piece] & to_mask:
+                wrong = -1
+                for piece in range(6):
+                    if self.bbs[1 - self.player_to_move][piece] & to_mask:
+                        wrong = piece
+                print(f"INCORRECT PIECE IN CAPTURE: {get_captured(move)} {wrong}")
             self.bbs[1 - self.player_to_move][captured_piece] &= ~to_mask
 
-        self.player_to_move = 1 - self.player_to_move
+        self.player_to_move = Player(1 - self.player_to_move)
 
     def unmove(self, move: np.uint32):
-        self.player_to_move = 1 - self.player_to_move
+        self.player_to_move = Player(1 - self.player_to_move)
 
         flags_mask = get_flags(move)
         if flags_mask == KING_CASTLE: # will we have permission to do this?
@@ -156,12 +167,12 @@ class Position:
             self.bbs[self.player_to_move][piece_moved] &= ~to_mask
         self.bbs[self.player_to_move][piece_moved] |= from_mask
 
-        piece_captured = get_captured(move)
-        if piece_captured:
+        if get_flags(move) == CAPTURE:
+            piece_captured = get_captured(move)
             self.bbs[1 - self.player_to_move][piece_captured] |= to_mask
 
     def get_player_occupied(self, player=None) -> np.uint64:
-        if not player:
+        if player is None:
             player = self.player_to_move
 
         player_occupied = u64(0)
@@ -174,6 +185,7 @@ class Position:
         return self.get_player_occupied(Player.WHITE) | self.get_player_occupied(Player.BLACK)
 
     def __repr__(self):
+        assert_unique_occupancy(self)
         board = ["." for _ in range(64)]
 
         for player in (Player.WHITE, Player.BLACK):
@@ -193,6 +205,32 @@ class Position:
         lines.append("\n   a b c d e f g h")
         return "\n".join(lines)
 
+
+### GPT CODE
+def assert_unique_occupancy(p):
+    occupancy_map = [""] * 64
+    piece_names = ["P", "N", "B", "R", "Q", "K"]
+
+    for player in (0, 1):
+        for piece_type in range(6):
+            bitboard = p.bbs[player][piece_type]
+            sq = 0
+            while bitboard:
+                if bitboard & 1:
+                    if occupancy_map[sq]:
+                        print(f"Overlap on square {sq} ({square_name(sq)})!")
+                        print(f"  Existing: {occupancy_map[sq]}")
+                        print(f"  Overlap:  {('WHITE' if player == 0 else 'BLACK')} {piece_names[piece_type]}")
+                    else:
+                        occupancy_map[sq] = f"{'W' if player == 0 else 'B'}{piece_names[piece_type]}"
+                bitboard >>= 1
+                sq += 1
+
+def square_name(index):
+    file = index % 8
+    rank = index // 8
+    return f"{chr(ord('a') + file)}{rank + 1}"
+###
 
 if __name__ == "__main__":
     p = Position()
