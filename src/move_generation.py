@@ -1,4 +1,3 @@
-#!/Users/brandon/sideprojects/chess-bot/venv/bin/python
 import numpy as np
 from chess_utils import *
 from move import *
@@ -18,15 +17,15 @@ NK_ATTACK_MASKS = {
 }
 
 
-def generate_moves(pos: Position):
+def generate_moves(p: Position):
     moves = []
-    moves += generate_pawn_moves(pos)
-    moves += generate_knight_moves(pos)
-    moves += generate_bishop_moves(pos)
-    moves += generate_rook_moves(pos)
-    moves += generate_queen_moves(pos)
-    moves += generate_king_moves(pos)
-    moves += generate_castle_moves(pos)
+    moves += generate_pawn_moves(p)
+    moves += generate_knight_moves(p)
+    moves += generate_bishop_moves(p)
+    moves += generate_rook_moves(p)
+    moves += generate_queen_moves(p)
+    moves += generate_king_moves(p)
+    moves += generate_castle_moves(p)
 
     return moves
 
@@ -69,38 +68,38 @@ def generate_legal_moves(p: Position, print_out=True):
     return legal_moves
 
 
-def generate_castle_moves(pos: Position):
+def generate_castle_moves(p: Position):
     w_qs_castle_mask = np.uint64((1 << 1) | (1 << 2) | (1 << 3))
     w_ks_castle_mask = np.uint64((1 << 5) | (1 << 6))
 
     b_qs_castle_mask = np.uint64((1 << 57) | (1 << 58) | (1 << 59))
     b_ks_castle_mask = np.uint64((1 << 62) | (1 << 61))
 
-    all_occupied = pos.get_all_occupied()
+    all_occupied = p.get_all_occupied()
 
     moves = []
 
-    if pos.player_to_move == Player.WHITE:
-        if not (pos.castling_rights & (CastlingRights.WHITE_KING | CastlingRights.WHITE_QROOK)) and not (w_qs_castle_mask & all_occupied):
+    if p.player_to_move == Player.WHITE:
+        if p.castling_rights & (CastlingRights.WHITE_KING | CastlingRights.WHITE_QROOK) and not (w_qs_castle_mask & all_occupied):
             moves.append(encode_move(4, 2, Piece.KING, flags=QUEEN_CASTLE))
-        if not (pos.castling_rights & (CastlingRights.WHITE_KING | CastlingRights.WHITE_KROOK)) and not (w_ks_castle_mask & all_occupied):
+        if p.castling_rights & (CastlingRights.WHITE_KING | CastlingRights.WHITE_KROOK) and not (w_ks_castle_mask & all_occupied):
             moves.append(encode_move(4, 6, Piece.KING, flags=KING_CASTLE))
-    elif pos.player_to_move == Player.BLACK:
-        if not (pos.castling_rights & (CastlingRights.BLACK_KING | CastlingRights.BLACK_QROOK)) and not (b_qs_castle_mask & all_occupied):
+    elif p.player_to_move == Player.BLACK:
+        if p.castling_rights & (CastlingRights.BLACK_KING | CastlingRights.BLACK_QROOK) and not (b_qs_castle_mask & all_occupied):
             moves.append(encode_move(60, 58, Piece.KING, flags=QUEEN_CASTLE))
-        if not (pos.castling_rights & (CastlingRights.BLACK_KING | CastlingRights.BLACK_KROOK)) and not (b_ks_castle_mask & all_occupied):
+        if p.castling_rights & (CastlingRights.BLACK_KING | CastlingRights.BLACK_KROOK) and not (b_ks_castle_mask & all_occupied):
             moves.append(encode_move(60, 62, Piece.KING, flags=KING_CASTLE))
 
     return moves
 
 
-def generate_pawn_moves(pos):
-    player = pos.player_to_move
+def generate_pawn_moves(p):
+    player = p.player_to_move
     opponent = 1 - player
-    pawn_bits = bitscan(pos.bbs[player][Piece.PAWN])
+    pawn_bits = bitscan(p.bbs[player][Piece.PAWN])
 
-    occupied = pos.get_player_occupied(player)
-    opponent_occupied = pos.get_player_occupied(opponent)
+    occupied = p.get_player_occupied(player)
+    opponent_occupied = p.get_player_occupied(opponent)
 
     all_occupied = occupied | opponent_occupied
 
@@ -129,7 +128,7 @@ def generate_pawn_moves(pos):
         for dst_sq in bitscan(all_pawn_attacks):
             flag = False
             for piece in Piece:
-                if pos.bbs[opponent][piece] & (u64(1) << u64(dst_sq)):
+                if p.bbs[opponent][piece] & (u64(1) << u64(dst_sq)):
                     move_list.append(encode_move(pawn_sq, dst_sq, Piece.PAWN, captured=piece, flags=CAPTURE))
                     flag = True
                     break
@@ -139,15 +138,15 @@ def generate_pawn_moves(pos):
     return move_list
 
 
-def generate_knight_moves(pos):
-    player = pos.player_to_move
+def generate_knight_moves(p):
+    player = p.player_to_move
     opponent = 1 - player
 
-    occupied = pos.get_player_occupied(player)
-    opponent_occupied = pos.get_player_occupied(opponent)
+    occupied = p.get_player_occupied(player)
+    opponent_occupied = p.get_player_occupied(opponent)
 
     move_list = []
-    knight_bits = bitscan(pos.bbs[player][Piece.KNIGHT])
+    knight_bits = bitscan(p.bbs[player][Piece.KNIGHT])
 
     for knight_bit in knight_bits:
         all_knight_moves = KNIGHT_MOVE_MASKS[knight_bit]
@@ -159,7 +158,7 @@ def generate_knight_moves(pos):
             if opponent_occupied & np.uint64(1 << dst):
                 flag = False
                 for piece in Piece:
-                    if pos.bbs[opponent][piece] & np.uint64(1 << dst):
+                    if p.bbs[opponent][piece] & np.uint64(1 << dst):
                         move_list.append(encode_move(knight_bit, dst, Piece.KNIGHT, captured=piece, flags=CAPTURE))
                         flag = True
                         break
@@ -171,33 +170,33 @@ def generate_knight_moves(pos):
     return move_list
 
 
-def generate_bishop_moves(pos):
-    return generate_sliding_moves(pos, Piece.BISHOP, [-9, -7, 7, 9])
+def generate_bishop_moves(p):
+    return generate_sliding_moves(p, Piece.BISHOP, [-9, -7, 7, 9])
 
 
-def generate_rook_moves(pos):
-    return generate_sliding_moves(pos, Piece.ROOK, [-8, -1, 1, 8])
+def generate_rook_moves(p):
+    return generate_sliding_moves(p, Piece.ROOK, [-8, -1, 1, 8])
 
 
-def generate_queen_moves(pos):
-    return generate_sliding_moves(pos, Piece.QUEEN,
+def generate_queen_moves(p):
+    return generate_sliding_moves(p, Piece.QUEEN,
                                   [-9, -8, -7, -1, 1, 7, 8, 9])
 
 
-def generate_legal_king_moves(pos: Position):
-    player = pos.player_to_move
+def generate_legal_king_moves(p: Position):
+    player = p.player_to_move
 
     # Get the unsafe squares that would put the king in check
-    unsafe_squares = generate_king_unsafe_squares(pos, Player(player))
+    unsafe_squares = generate_king_unsafe_squares(p, Player(player))
 
     # Get the bit that the current king to play is on
-    king_bit = bitscan(pos.bbs[player][Piece.KING])[0]
+    king_bit = bitscan(p.bbs[player][Piece.KING])[0]
 
     # Get the pseudolegal move bitboard for the king's current position
     all_king_moves = KING_MOVE_MASKS[king_bit]
 
-    occupied = pos.get_player_occupied(player)
-    opponent_occupied = pos.get_player_occupied(1 - player)
+    occupied = p.get_player_occupied(player)
+    opponent_occupied = p.get_player_occupied(1 - player)
 
     new_moves = all_king_moves & ~occupied
     move_list = []
@@ -207,22 +206,20 @@ def generate_legal_king_moves(pos: Position):
             pieces_checked = []
             for piece in Piece:
                 pieces_checked.append(piece)
-                if pos.bbs[1 - pos.player_to_move][piece] & (1 << dst_bit):
-                    print(f"PIECE FOUND: {piece}")
+                if p.bbs[1 - p.player_to_move][piece] & (1 << dst_bit):
                     m = encode_move(king_bit, dst_bit, Piece.KING, captured=piece, flags=CAPTURE)
-                    pos.move(m)
-                    if not is_in_check(pos, player):
+                    p.move(m)
+                    if not is_in_check(p, player):
                         move_list.append(m)
-                    pos.unmove(m)
+                    p.unmove(m)
 
                     if not (unsafe_squares & u64(1 << dst_bit)):
-                        print("CAPTURE SAFE")
                         move_list.append(encode_move(king_bit, dst_bit, Piece.KING, captured=piece, flags=CAPTURE))
                         flag = True
                         break
             if not flag:
                 print(f"KING CAPTURE FAILURE {square_name(king_bit)}{square_name(dst_bit)}")
-                generate_king_unsafe_squares(pos, player, print_out=True)
+                generate_king_unsafe_squares(p, player, print_out=False)
 
         else:
             if not (unsafe_squares & u64(1 << dst_bit)):
@@ -261,15 +258,15 @@ def generate_king_moves(p: Position):
     return moves
 
 
-def generate_sliding_moves(pos: Position, piece: Piece, deltas: list[int]):
-    player = pos.player_to_move
+def generate_sliding_moves(p: Position, piece: Piece, deltas: list[int]):
+    player = p.player_to_move
     opponent = 1 - player
 
-    occupied = pos.get_player_occupied(player)
-    opponent_occupied = pos.get_player_occupied(opponent)
+    occupied = p.get_player_occupied(player)
+    opponent_occupied = p.get_player_occupied(opponent)
 
     move_list = []
-    piece_bits = bitscan(pos.bbs[player][piece])
+    piece_bits = bitscan(p.bbs[player][piece])
 
     for piece_bit in piece_bits:
         piece_file = piece_bit % 8
@@ -292,7 +289,7 @@ def generate_sliding_moves(pos: Position, piece: Piece, deltas: list[int]):
                 if (opponent_occupied & (u64(1) << u64(dst_bit))):
                     found_piece = False
                     for candidate in Piece:
-                        if pos.bbs[opponent][candidate] & (u64(1) << u64(dst_bit)):
+                        if p.bbs[opponent][candidate] & (u64(1) << u64(dst_bit)):
                             found_piece = True
                             move_list.append(encode_move(piece_bit, dst_bit, piece, captured=candidate, flags=CAPTURE))
                             break
@@ -397,10 +394,10 @@ def generate_king_unsafe_squares(p: Position, player: Player, print_out=False) -
 
     # TODO: shift bitboards directly instead of a square number
     for piece in (Piece.BISHOP, Piece.ROOK, Piece.QUEEN):
-        piece_bits = bitscan(p.bbs[player][piece])
+        piece_bits = bitscan(p.bbs[1 - player][piece])
         for piece_bit in piece_bits:
-            current_bit = piece_bit
-            for d in deltas:
+            for d in deltas[piece]:
+                current_bit = piece_bit
                 for _ in range(1, 8):
                     dst_bit = current_bit + d
 
@@ -408,22 +405,26 @@ def generate_king_unsafe_squares(p: Position, player: Player, print_out=False) -
                         or (d in (-9, -7, -1, 1, 7, 9) and abs((current_bit % 8) - (dst_bit % 8)) > 1)):
                         break
                     else:
+                        
                         unsafe_squares_list[piece] |= (u64(1) << u64(dst_bit))
+                        #render_bitboard(unsafe_squares_list[piece])
 
                         # If the target square is occupied by an opponent, stop here
                         if (opponent_occupied & (u64(1) << u64(dst_bit))):
                             break
                     
                     current_bit = dst_bit
-    for board in unsafe_squares_list:
-        unsafe_squares |= board
+    if not print_out:
+        for board in unsafe_squares_list:
+            unsafe_squares |= board
     if print_out:
         print("==== UNSAFE SQUARE RESULT ====")
         print(p)
         for piece in Piece:
             print(f"{Piece(piece)} UNSAFE SQUARES:")
             render_bitboard(unsafe_squares_list[piece])
-            render_bitboard(unsafe_squares)
+            unsafe_squares |= unsafe_squares_list[piece]
+            #render_bitboard(unsafe_squares)
         print("==============================")
     
     return unsafe_squares
@@ -454,12 +455,3 @@ def print_all_pawn_masks(player):
     for sq in range(64):
         print(f"Square {sq} ({bit_to_fr(sq)}):")
         render_bitboard(PAWN_ATTACK_MASKS[player][sq], origin_sq=sq, symbol='x')
-
-
-def main():
-    print_all_pawn_masks(Player.WHITE)
-    print_all_pawn_masks(Player.BLACK)
-
-
-if __name__ == "__main__":
-    main()

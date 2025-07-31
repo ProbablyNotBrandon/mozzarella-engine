@@ -1,39 +1,39 @@
 #!/Users/brandon/sideprojects/chess-bot/venv/bin/python
 import sys
-from position import Position
+from position import Position, Piece
 from move import *
-from move_generation import generate_legal_moves
+from move_generation import generate_legal_moves, render_bitboard
 from datetime import datetime
-from time import sleep
 
 DEPTH = 5
 if len(sys.argv) == 2:
     DEPTH = int(sys.argv[1])
 
 
-def perft(pos: Position, depth: int):
+def perft(p: Position, depth: int):
     if depth == 0:
         return 1
-    moves = generate_legal_moves(pos, print_out=False)
+    moves = generate_legal_moves(p, print_out=False)
     if depth == 1:
         return len(moves)
     total = 0
     for move in moves:
-        pos.move(move)
-        count = perft(pos, depth - 1)
+        p.move(move)
+        count = perft(p, depth - 1)
         total += count
-        pos.unmove(move)
+        p.unmove(move)
     return total
 
-def perft_divide(pos, depth):
-    moves = generate_legal_moves(pos, print_out=False)
+def perft_divide(p, depth):
+    moves = generate_legal_moves(p, print_out=False)
     total = 0
     for move in moves:
-        pos.move(move)
-        count = perft(pos, depth - 1)
+        p.move(move)
+        count = perft(p, depth - 1)
+        #print(f"{Piece(get_piece(move)).name} {Move(move)}: {count}")
         print(f"{square_to_coord(get_from_sq(move))}{square_to_coord(get_to_sq(move))}: {count}")
         total += count
-        pos.unmove(move)
+        p.unmove(move)
     print(f"Total: {total}")
     return total
 

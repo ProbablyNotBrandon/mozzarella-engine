@@ -1,5 +1,3 @@
-#!/Users/brandon/sideprojects/chess-bot/venv/bin/python
-
 from enum import IntEnum
 import numpy as np
 
@@ -73,7 +71,7 @@ class Position:
 
         self.player_to_move = Player.WHITE if fen[1] == 'w' else Player.BLACK
 
-        # Castling rights are a 4 bit number
+        # Castling rights are a 6 bit number
         self.castling_rights = 0
         if 'K' in fen[2]:
             self.castling_rights |= CastlingRights.WHITE_KING | CastlingRights.WHITE_KROOK
@@ -231,6 +229,3 @@ def square_name(index):
     rank = index // 8
     return f"{chr(ord('a') + file)}{rank + 1}"
 ###
-
-if __name__ == "__main__":
-    p = Position()
