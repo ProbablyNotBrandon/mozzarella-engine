@@ -92,6 +92,8 @@ class Position:
         self.halfmoves = int(fen[4])
         self.fullmoves = int(fen[5])
 
+        self.move_stack = []
+
     def move(self, move: np.uint32):
         # CASTLING LOGIC
         flags_mask = get_flags(move)
@@ -100,12 +102,16 @@ class Position:
             self.bbs[self.player_to_move][Piece.ROOK] &= ~(self.bbs[self.player_to_move][Piece.KING] >> u64(1))
             self.bbs[self.player_to_move][Piece.ROOK] |= self.bbs[self.player_to_move][Piece.KING] << u64(1)
             self.castling_rights |= u64(0b011 << (self.player_to_move * 2))  # Remove player's right to castle
+            self.player_to_move = Player(1 - self.player_to_move)
+            self.move_stack.append(move)
             return
         elif flags_mask == QUEEN_CASTLE:
             self.bbs[self.player_to_move][Piece.KING] <<= np.uint64(3)
             self.bbs[self.player_to_move][Piece.ROOK] &= ~(self.bbs[self.player_to_move][Piece.KING] << u64(1))
             self.bbs[self.player_to_move][Piece.ROOK] |= self.bbs[self.player_to_move][Piece.KING] >> u64(1)
             self.castling_rights |= u64(0b101 << (self.player_to_move * 2))
+            self.player_to_move = Player(1 - self.player_to_move)
+            self.move_stack.append(move)
             return
 
         from_mask = u64(1 << get_from_sq(move))
@@ -115,26 +121,24 @@ class Position:
 
         self.bbs[self.player_to_move][piece_moved] &= ~from_mask
 
+        if flags_mask == EN_PASSANT:
+            # Capture the double pushed pawn
+            shift = lambda x, y: x >> y if self.player_to_move == Player.WHITE else x << y
+            self.bbs[1 - self.player_to_move][Piece.PAWN] &= ~u64(shift(to_mask, 8))
+
         promotion_piece = get_promotion(move)
         if promotion_piece:
             self.bbs[self.player_to_move][promotion_piece] |= to_mask
         else:
             self.bbs[self.player_to_move][piece_moved] |= to_mask
 
-        
-        if get_flags(move) == CAPTURE:
+        if flags_mask == CAPTURE or flags_mask == KNIGHT_PROMO_CAPTURE or flags_mask == QUEEN_PROMO_CAPTURE or flags_mask == ROOK_PROMO_CAPTURE or flags_mask == BISHOP_PROMO_CAPTURE:
             captured_piece = get_captured(move)
-            if not to_mask:
-                print("NO TO MASK")
-            if not self.bbs[1 - self.player_to_move][captured_piece] & to_mask:
-                wrong = -1
-                for piece in range(6):
-                    if self.bbs[1 - self.player_to_move][piece] & to_mask:
-                        wrong = piece
-                print(f"INCORRECT PIECE IN CAPTURE: {get_captured(move)} {wrong}")
             self.bbs[1 - self.player_to_move][captured_piece] &= ~to_mask
 
         self.player_to_move = Player(1 - self.player_to_move)
+
+        self.move_stack.append(move)
 
     def unmove(self, move: np.uint32):
         self.player_to_move = Player(1 - self.player_to_move)
@@ -145,12 +149,15 @@ class Position:
             self.bbs[self.player_to_move][Piece.ROOK] &= ~(self.bbs[self.player_to_move][Piece.KING] << u64(1))
             self.bbs[self.player_to_move][Piece.KING] <<= np.uint64(2)
             self.castling_rights &= ~u64(0b011 << (self.player_to_move * 2))  # Add back player's right to castle
+            self.move_stack.pop(-1)
             return
+
         elif flags_mask == QUEEN_CASTLE:
             self.bbs[self.player_to_move][Piece.ROOK] &= ~(self.bbs[self.player_to_move][Piece.KING] >> u64(1))
             self.bbs[self.player_to_move][Piece.ROOK] |= self.bbs[self.player_to_move][Piece.KING] << u64(1)
             self.bbs[self.player_to_move][Piece.KING] >>= np.uint64(3)
             self.castling_rights &= ~u64(0b101 << (self.player_to_move * 2))
+            self.move_stack.pop(-1)
             return
 
         from_mask = u64(1 << get_from_sq(move))
@@ -158,16 +165,23 @@ class Position:
 
         piece_moved = get_piece(move)
 
+        self.bbs[self.player_to_move][piece_moved] |= from_mask
+        if flags_mask == EN_PASSANT:
+            # Un-capture the double pushed pawn
+            shift = lambda x, y: x >> y if self.player_to_move == Player.WHITE else x << y
+            self.bbs[1 - self.player_to_move][Piece.PAWN] |= shift(to_mask, 8)
+
         promotion_piece = get_promotion(move)
         if promotion_piece:
             self.bbs[self.player_to_move][promotion_piece] &= ~to_mask
         else:
             self.bbs[self.player_to_move][piece_moved] &= ~to_mask
-        self.bbs[self.player_to_move][piece_moved] |= from_mask
 
-        if get_flags(move) == CAPTURE:
+        if flags_mask == CAPTURE or flags_mask == KNIGHT_PROMO_CAPTURE or flags_mask == QUEEN_PROMO_CAPTURE or flags_mask == ROOK_PROMO_CAPTURE or flags_mask == BISHOP_PROMO_CAPTURE:
             piece_captured = get_captured(move)
             self.bbs[1 - self.player_to_move][piece_captured] |= to_mask
+        
+        self.move_stack.pop(-1)
 
     def get_player_occupied(self, player=None) -> np.uint64:
         if player is None:
