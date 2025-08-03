@@ -1,7 +1,7 @@
 from enum import IntEnum
 import numpy as np
 
-from chess_utils import u64
+from chess_utils import u64, bitscan
 from move import *
 
 START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
@@ -41,6 +41,14 @@ piece_to_ch = {
     (Player.WHITE, Piece.ROOK): "R", (Player.BLACK, Piece.ROOK): "r",
     (Player.WHITE, Piece.QUEEN): "Q", (Player.BLACK, Piece.QUEEN): "q",
     (Player.WHITE, Piece.KING): "K", (Player.BLACK, Piece.KING): "k",
+}
+
+piece_values = {
+    Piece.PAWN: 100,
+    Piece.KNIGHT: 300,
+    Piece.BISHOP: 300,
+    Piece.ROOK: 600,
+    Piece.QUEEN: 900
 }
 
 
@@ -98,6 +106,12 @@ class Position:
         self.castling_rights_stack = []
         self.castling_rights_stack.append(self.castling_rights)
 
+        # Store total material value of each piece
+        self.total_material_value = [0, 0]
+        for player in (Player.WHITE, Player.BLACK):
+            for piece in (Piece.PAWN, Piece.KNIGHT, Piece.BISHOP, Piece.ROOK, Piece.QUEEN):
+                self.total_material_value[player] += len(bitscan(self.bbs[player][piece]))
+
     def move(self, move: np.uint32):
         # CASTLING LOGIC
         flags_mask = get_flags(move)
@@ -105,7 +119,7 @@ class Position:
         # King was moved, update castling rights
         if get_piece(move) == Piece.KING:
             self.castling_rights &= ~([np.uint8(CastlingRights.WHITE_KING), np.uint8(CastlingRights.BLACK_KING)][self.player_to_move])
-        
+
         # A rook was moved, update castling rights
         # TODO: find a cleaner solution than this
         # TODO: update castling rights to be an array of 2 castling right objects,
@@ -180,17 +194,20 @@ class Position:
 
         if flags_mask == EN_PASSANT:
             # Capture the double pushed pawn
+            self.total_material_value[1 - self.player_to_move] -= piece_values[Piece.PAWN]
             shift = lambda x, y: x >> y if self.player_to_move == Player.WHITE else x << y
             self.bbs[1 - self.player_to_move][Piece.PAWN] &= ~u64(shift(to_mask, 8))
 
         promotion_piece = get_promotion(move)
         if promotion_piece:
+            self.total_material_value[self.player_to_move] += (piece_values[Piece(promotion_piece)] - piece_values[Piece(Piece.PAWN)])
             self.bbs[self.player_to_move][promotion_piece] |= to_mask
         else:
             self.bbs[self.player_to_move][piece_moved] |= to_mask
 
         if flags_mask == CAPTURE or flags_mask == KNIGHT_PROMO_CAPTURE or flags_mask == QUEEN_PROMO_CAPTURE or flags_mask == ROOK_PROMO_CAPTURE or flags_mask == BISHOP_PROMO_CAPTURE:
             captured_piece = get_captured(move)
+            self.total_material_value[1 - self.player_to_move] -= piece_values[Piece(captured_piece)]
             self.bbs[1 - self.player_to_move][captured_piece] &= ~to_mask
 
         self.player_to_move = Player(1 - self.player_to_move)
@@ -240,18 +257,21 @@ class Position:
 
         self.bbs[self.player_to_move][piece_moved] |= from_mask
         if flags_mask == EN_PASSANT:
+            self.total_material_value[1 - self.player_to_move] += piece_values[Piece.PAWN]
             # Un-capture the double pushed pawn
             shift = lambda x, y: x >> y if self.player_to_move == Player.WHITE else x << y
             self.bbs[1 - self.player_to_move][Piece.PAWN] |= shift(to_mask, 8)
 
         promotion_piece = get_promotion(move)
         if promotion_piece:
+            self.total_material_value[self.player_to_move] -= piece_values[Piece(promotion_piece)] - piece_values[Piece.PAWN]
             self.bbs[self.player_to_move][promotion_piece] &= ~to_mask
         else:
             self.bbs[self.player_to_move][piece_moved] &= ~to_mask
 
         if flags_mask == CAPTURE or flags_mask == KNIGHT_PROMO_CAPTURE or flags_mask == QUEEN_PROMO_CAPTURE or flags_mask == ROOK_PROMO_CAPTURE or flags_mask == BISHOP_PROMO_CAPTURE:
             piece_captured = get_captured(move)
+            self.total_material_value[1 - self.player_to_move] += piece_values[Piece(piece_captured)]
             self.bbs[1 - self.player_to_move][piece_captured] |= to_mask
 
         self.move_stack.pop(-1)
