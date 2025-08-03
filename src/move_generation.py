@@ -18,8 +18,6 @@ NK_ATTACK_MASKS = {
 
 def generate_moves(p: Position):
     moves = []
-    moves += generate_pawn_moves(p)
-    moves += generate_knight_moves(p)
     moves += generate_bishop_moves(p)
     moves += generate_rook_moves(p)
     moves += generate_queen_moves(p)
@@ -29,33 +27,25 @@ def generate_moves(p: Position):
     return moves
 
 
-def generate_legal_moves(p: Position, print_out=True):
+def generate_legal_moves(p: Position, print_out=False):
     moves = []
 
     player = p.player_to_move
     in_check = is_in_check(p, player)
 
-    moves.extend(generate_pawn_moves(p))  # Something I totally didn't think of - pawn attacks can lead to discovered check.
-    moves.extend(generate_en_passant_moves(p))  # En passant can also lead to discovered check , both horizontally and vertically. Am I a fucking idiot?
+    moves.extend(generate_pawn_moves(p))
+    moves.extend(generate_en_passant_moves(p))
     moves.extend(generate_knight_moves(p))
     moves.extend(generate_bishop_moves(p))
     moves.extend(generate_rook_moves(p))
     moves.extend(generate_queen_moves(p))
-    # moves.extend(generate_king_moves(p))
-    castle_moves = generate_castle_moves(p)  # These should be checked against all types of checks
+    castle_moves = generate_castle_moves(p)
 
     legal_moves = []
     for move in moves:
         p.move(move)
-        # if get_flags(move) == CAPTURE and get_captured(move) == Piece.PAWN:
-        #     print("CHECKING LEGALITY")
-        if not is_in_check(p, Player(player)):  # Try to find some optimization here where this check is dependent on the piece that was moved
+        if not is_in_check(p, Player(player)):
             legal_moves.append(move)
-        # else:
-        #     if get_flags(move) == CAPTURE and get_captured(move) == Piece.PAWN:
-        #         print("MOVE ILLEGAL")
-        #         is_in_sliding_check(p, player, tmp=True)
-        #         print(p)
         p.unmove(move)
 
     # Cannot castle while in check
@@ -156,8 +146,8 @@ def generate_pawn_moves(p):
         for dst_sq in bitscan(all_pawn_advances):
             flags = 0
 
-            # ADVANCE PROMOTIONS
-            if (56 * (1 - player)) <= dst_sq <= (63 * (1 - player)):  # If the target square is a promotion
+            # If the target square is a promotion
+            if (56 * (1 - player)) <= dst_sq <= (63 * (1 - player)):
                 move_list.append(encode_move(pawn_sq, dst_sq, Piece.PAWN, promotion=Piece.QUEEN, flags=QUEEN_PROMO))
                 move_list.append(encode_move(pawn_sq, dst_sq, Piece.PAWN, promotion=Piece.ROOK, flags=ROOK_PROMO))
                 move_list.append(encode_move(pawn_sq, dst_sq, Piece.PAWN, promotion=Piece.BISHOP, flags=BISHOP_PROMO))
@@ -170,19 +160,16 @@ def generate_pawn_moves(p):
         # A pawn can only capture a square if the enemy is there
         all_pawn_attacks = PAWN_ATTACK_MASKS[player][pawn_sq] & opponent_occupied
 
-        # render_bitboard(all_pawn_attacks)
-        # render_bitboard(opponent_occupied)
         for dst_sq in bitscan(all_pawn_attacks):
             for piece in Piece:
                 if p.bbs[opponent][piece] & u64(1 << dst_sq):
-                    if (56 * (1 - player)) <= dst_sq <= (63 * (1 - player)):  # If the target square is a promotion
-                        # print("APPENDING AS PROMO CAPTURE")
+                    # If the target square is a promotion
+                    if (56 * (1 - player)) <= dst_sq <= (63 * (1 - player)):
                         move_list.append(encode_move(pawn_sq, dst_sq, Piece.PAWN, captured=piece, promotion=Piece.QUEEN, flags=QUEEN_PROMO_CAPTURE))
                         move_list.append(encode_move(pawn_sq, dst_sq, Piece.PAWN, captured=piece, promotion=Piece.ROOK, flags=ROOK_PROMO_CAPTURE))
                         move_list.append(encode_move(pawn_sq, dst_sq, Piece.PAWN, captured=piece, promotion=Piece.BISHOP, flags=BISHOP_PROMO_CAPTURE))
                         move_list.append(encode_move(pawn_sq, dst_sq, Piece.PAWN, captured=piece, promotion=Piece.KNIGHT, flags=KNIGHT_PROMO_CAPTURE))
                         break
-                    # print("APPENDING AS REGULAR CAPTURE")
                     move_list.append(encode_move(pawn_sq, dst_sq, Piece.PAWN, captured=piece, flags=CAPTURE))
                     break
 
@@ -251,13 +238,6 @@ def generate_legal_king_moves(p: Position):
         if opponent_occupied & u64(1 << dst_bit):
             for piece in Piece:
                 if p.bbs[1 - p.player_to_move][piece] & (1 << dst_bit):
-                    # m = encode_move(king_bit, dst_bit, Piece.KING, captured=piece, flags=CAPTURE)
-                    # p.move(m)
-                    # if not is_in_check(p, player):
-                    #     print("MOVE ENCODED, MOVE GETS OUT OF CHECK")
-                    #     move_list.append(m)
-                    # p.unmove(m)
-
                     if not (unsafe_squares & u64(1 << dst_bit)):
                         move_list.append(encode_move(king_bit, dst_bit, Piece.KING, captured=piece, flags=CAPTURE))
                         break
