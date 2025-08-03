@@ -72,15 +72,17 @@ class Position:
         self.player_to_move = Player.WHITE if fen[1] == 'w' else Player.BLACK
 
         # Castling rights are a 6 bit number
-        self.castling_rights = 0
+        # TODO: when constructing a position from scratch, find some way to infer castling
+        # rights without the context of the FEN
+        self.castling_rights = np.uint8(0)
         if 'K' in fen[2]:
-            self.castling_rights |= CastlingRights.WHITE_KING | CastlingRights.WHITE_KROOK
+            self.castling_rights |= np.uint8(CastlingRights.WHITE_KING | CastlingRights.WHITE_KROOK)
         if 'Q' in fen[2]:
-            self.castling_rights |= CastlingRights.WHITE_KING | CastlingRights.WHITE_QROOK
+            self.castling_rights |= np.uint8(CastlingRights.WHITE_KING | CastlingRights.WHITE_QROOK)
         if 'k' in fen[2]:
-            self.castling_rights |= CastlingRights.BLACK_KING | CastlingRights.BLACK_KROOK
+            self.castling_rights |= np.uint8(CastlingRights.BLACK_KING | CastlingRights.BLACK_KROOK)
         if 'q' in fen[2]:
-            self.castling_rights |= CastlingRights.BLACK_KING | CastlingRights.BLACK_QROOK
+            self.castling_rights |= np.uint8(CastlingRights.BLACK_KING | CastlingRights.BLACK_QROOK)
 
         if fen[3] == '-':
             self.ep_target = None
@@ -93,25 +95,80 @@ class Position:
         self.fullmoves = int(fen[5])
 
         self.move_stack = []
+        self.castling_rights_stack = []
+        self.castling_rights_stack.append(self.castling_rights)
 
     def move(self, move: np.uint32):
         # CASTLING LOGIC
         flags_mask = get_flags(move)
+
+        # King was moved, update castling rights
+        if get_piece(move) == Piece.KING:
+            self.castling_rights &= ~([np.uint8(CastlingRights.WHITE_KING), np.uint8(CastlingRights.BLACK_KING)][self.player_to_move])
+        
+        # A rook was moved, update castling rights
+        # TODO: find a cleaner solution than this
+        # TODO: update castling rights to be an array of 2 castling right objects,
+        #       this way they can be indexed by player moving (way simpler code)
+        if get_piece(move) == Piece.ROOK:
+            if self.player_to_move == Player.WHITE:
+                if get_from_sq(move) == 0:
+                    self.castling_rights &= ~np.uint8(CastlingRights.WHITE_QROOK)
+                elif get_from_sq(move) == 7:
+                    self.castling_rights &= ~np.uint8(CastlingRights.WHITE_KROOK)
+            elif self.player_to_move == Player.BLACK:
+                if get_from_sq == 56:
+                    self.castling_rights &= ~np.uint8(CastlingRights.BLACK_QROOK)
+                elif get_from_sq(move) == 63:
+                    self.castling_rights &= ~np.uint8(CastlingRights.BLACK_KROOK)
+        
+        # For the possible captured rook, remember that we are capturing the **opponent** pieces
+        if get_captured(move) == Piece.ROOK:
+            if self.player_to_move == Player.WHITE:
+                if get_to_sq(move) == 0:
+                    self.castling_rights &= ~np.uint8(CastlingRights.WHITE_QROOK)
+                elif get_to_sq(move) == 7:
+                    self.castling_rights &= ~np.uint8(CastlingRights.WHITE_KROOK)
+            elif self.player_to_move == Player.BLACK:
+                if get_to_sq == 56:
+                    self.castling_rights &= ~np.uint8(CastlingRights.BLACK_QROOK)
+                elif get_to_sq(move) == 63:
+                    self.castling_rights &= ~np.uint8(CastlingRights.BLACK_KROOK)
+
         if flags_mask == KING_CASTLE:  # will we have permission to do this?
-            self.bbs[self.player_to_move][Piece.KING] >>= np.uint64(2)
-            self.bbs[self.player_to_move][Piece.ROOK] &= ~(self.bbs[self.player_to_move][Piece.KING] >> u64(1))
-            self.bbs[self.player_to_move][Piece.ROOK] |= self.bbs[self.player_to_move][Piece.KING] << u64(1)
-            self.castling_rights |= u64(0b011 << (self.player_to_move * 2))  # Remove player's right to castle
+            # Use hardcoded squares
+            king_from = 4 + 56 * self.player_to_move
+            king_to = 6 + 56 * self.player_to_move
+            rook_from = 7 + 56 * self.player_to_move
+            rook_to = 5 + 56 * self.player_to_move
+
+            self.bbs[self.player_to_move][Piece.KING] &= ~u64(1 << king_from)
+            self.bbs[self.player_to_move][Piece.KING] |= u64(1 << king_to)
+            self.bbs[self.player_to_move][Piece.ROOK] &= ~u64(1 << rook_from)
+            self.bbs[self.player_to_move][Piece.ROOK] |= u64(1 << rook_to)
+
+            self.castling_rights &= ~u64(0b011 << (self.player_to_move * 2))  # Remove player's right to castle
             self.player_to_move = Player(1 - self.player_to_move)
             self.move_stack.append(move)
+            self.castling_rights_stack.append(self.castling_rights)
             return
+
         elif flags_mask == QUEEN_CASTLE:
-            self.bbs[self.player_to_move][Piece.KING] <<= np.uint64(3)
-            self.bbs[self.player_to_move][Piece.ROOK] &= ~(self.bbs[self.player_to_move][Piece.KING] << u64(1))
-            self.bbs[self.player_to_move][Piece.ROOK] |= self.bbs[self.player_to_move][Piece.KING] >> u64(1)
-            self.castling_rights |= u64(0b101 << (self.player_to_move * 2))
+            # Use hardcoded squares
+            king_from = 4 + 56 * self.player_to_move
+            king_to = 1 + 56 * self.player_to_move
+            rook_from = 0 + 56 * self.player_to_move
+            rook_to = 2 + 56 * self.player_to_move
+
+            self.bbs[self.player_to_move][Piece.KING] &= ~u64(1 << king_from)
+            self.bbs[self.player_to_move][Piece.KING] |= u64(1 << king_to)
+            self.bbs[self.player_to_move][Piece.ROOK] &= ~u64(1 << rook_from)
+            self.bbs[self.player_to_move][Piece.ROOK] |= u64(1 << rook_to)
+
+            self.castling_rights &= ~u64(0b101 << (self.player_to_move * 2))
             self.player_to_move = Player(1 - self.player_to_move)
             self.move_stack.append(move)
+            self.castling_rights_stack.append(self.castling_rights)
             return
 
         from_mask = u64(1 << get_from_sq(move))
@@ -139,24 +196,40 @@ class Position:
         self.player_to_move = Player(1 - self.player_to_move)
 
         self.move_stack.append(move)
+        self.castling_rights_stack.append(self.castling_rights)
 
     def unmove(self, move: np.uint32):
         self.player_to_move = Player(1 - self.player_to_move)
 
         flags_mask = get_flags(move)
         if flags_mask == KING_CASTLE:  # will we have permission to do this?
-            self.bbs[self.player_to_move][Piece.ROOK] |= self.bbs[self.player_to_move][Piece.KING] >> u64(1)
-            self.bbs[self.player_to_move][Piece.ROOK] &= ~(self.bbs[self.player_to_move][Piece.KING] << u64(1))
-            self.bbs[self.player_to_move][Piece.KING] <<= np.uint64(2)
-            self.castling_rights &= ~u64(0b011 << (self.player_to_move * 2))  # Add back player's right to castle
+            # Use hardcoded squares
+            king_from = 4 + 56 * self.player_to_move
+            king_to = 6 + 56 * self.player_to_move
+            rook_from = 7 + 56 * self.player_to_move
+            rook_to = 5 + 56 * self.player_to_move
+
+            self.bbs[self.player_to_move][Piece.KING] |= u64(1 << king_from)
+            self.bbs[self.player_to_move][Piece.KING] &= ~u64(1 << king_to)
+            self.bbs[self.player_to_move][Piece.ROOK] |= u64(1 << rook_from)
+            self.bbs[self.player_to_move][Piece.ROOK] &= ~u64(1 << rook_to)
+
+            self.castling_rights = self.castling_rights_stack.pop(-1)
             self.move_stack.pop(-1)
             return
 
         elif flags_mask == QUEEN_CASTLE:
-            self.bbs[self.player_to_move][Piece.ROOK] &= ~(self.bbs[self.player_to_move][Piece.KING] >> u64(1))
-            self.bbs[self.player_to_move][Piece.ROOK] |= self.bbs[self.player_to_move][Piece.KING] << u64(1)
-            self.bbs[self.player_to_move][Piece.KING] >>= np.uint64(3)
-            self.castling_rights &= ~u64(0b101 << (self.player_to_move * 2))
+            king_from = 4 + 56 * self.player_to_move
+            king_to = 1 + 56 * self.player_to_move
+            rook_from = 0 + 56 * self.player_to_move
+            rook_to = 2 + 56 * self.player_to_move
+
+            self.bbs[self.player_to_move][Piece.KING] |= u64(1 << king_from)
+            self.bbs[self.player_to_move][Piece.KING] &= ~u64(1 << king_to)
+            self.bbs[self.player_to_move][Piece.ROOK] |= u64(1 << rook_from)
+            self.bbs[self.player_to_move][Piece.ROOK] &= ~u64(1 << rook_to)
+
+            self.castling_rights = self.castling_rights_stack.pop(-1)
             self.move_stack.pop(-1)
             return
 
@@ -182,6 +255,7 @@ class Position:
             self.bbs[1 - self.player_to_move][piece_captured] |= to_mask
 
         self.move_stack.pop(-1)
+        self.castling_rights = self.castling_rights_stack.pop(-1)
 
     def get_player_occupied(self, player=None) -> np.uint64:
         if player is None:
@@ -225,7 +299,7 @@ def assert_unique_occupancy(p):
 
     for player in (0, 1):
         for piece_type in range(6):
-            bitboard = p.bbs[player][piece_type]
+            bitboard = u64(0) | p.bbs[player][piece_type]
             sq = 0
             while bitboard:
                 if bitboard & 1:

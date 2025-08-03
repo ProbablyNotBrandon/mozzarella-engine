@@ -81,14 +81,17 @@ def generate_castle_moves(p: Position):
     unsafe_king_squares = generate_king_unsafe_squares(p, p.player_to_move)
 
     if p.player_to_move == Player.WHITE:
-        if p.castling_rights & (CastlingRights.WHITE_KING | CastlingRights.WHITE_QROOK) and not (w_qs_castle_mask & all_occupied) and not (w_qs_castle_mask & unsafe_king_squares):
+        # Currently, castling rights are not being updated ever in the event that one of the rooks or the king moves.
+        # To get around this for now, a solution (albeit partial, as it does not truly represent state) is to check
+        # and see if both the desired rook and the king exist at the desired squares.
+        if (p.castling_rights & np.uint8(CastlingRights.WHITE_KING)) and (p.castling_rights & np.uint8(CastlingRights.WHITE_QROOK)) and not (w_qs_castle_mask & all_occupied) and not (w_qs_castle_mask & unsafe_king_squares):
             moves.append(encode_move(4, 1, Piece.KING, flags=QUEEN_CASTLE))
-        if p.castling_rights & (CastlingRights.WHITE_KING | CastlingRights.WHITE_KROOK) and not (w_ks_castle_mask & all_occupied) and not (w_ks_castle_mask & unsafe_king_squares):
+        if (p.castling_rights & np.uint8(CastlingRights.WHITE_KING)) and (p.castling_rights & np.uint8(CastlingRights.WHITE_KROOK)) and not (w_ks_castle_mask & all_occupied) and not (w_ks_castle_mask & unsafe_king_squares):
             moves.append(encode_move(4, 6, Piece.KING, flags=KING_CASTLE))
     elif p.player_to_move == Player.BLACK:
-        if p.castling_rights & (CastlingRights.BLACK_KING | CastlingRights.BLACK_QROOK) and not (b_qs_castle_mask & all_occupied) and not (b_qs_castle_mask & unsafe_king_squares):
+        if (p.castling_rights & np.uint8(CastlingRights.BLACK_KING)) and (p.castling_rights & np.uint8(CastlingRights.BLACK_QROOK)) and not (b_qs_castle_mask & all_occupied) and not (b_qs_castle_mask & unsafe_king_squares):
             moves.append(encode_move(60, 57, Piece.KING, flags=QUEEN_CASTLE))
-        if p.castling_rights & (CastlingRights.BLACK_KING | CastlingRights.BLACK_KROOK) and not (b_ks_castle_mask & all_occupied) and not (b_ks_castle_mask & unsafe_king_squares):
+        if (p.castling_rights & np.uint8(CastlingRights.BLACK_KING)) and (p.castling_rights & np.uint8(CastlingRights.BLACK_KROOK)) and not (b_ks_castle_mask & all_occupied) and not (b_ks_castle_mask & unsafe_king_squares):
             moves.append(encode_move(60, 62, Piece.KING, flags=KING_CASTLE))
 
     return moves
@@ -446,15 +449,3 @@ def render_bitboard(bb, origin_sq=None, symbol='x'):
     for row in board:
         print(' '.join(row))
     print()
-
-
-def print_all_pawn_masks(player):
-    print("=== PAWN ADVANCE MASKS ===")
-    for sq in range(64):
-        print(f"Square {sq} ({bit_to_fr(sq)}):")
-        render_bitboard(PAWN_ADVANCE_MASKS[player][sq], origin_sq=sq, symbol='a')
-
-    print("=== PAWN ATTACK MASKS ===")
-    for sq in range(64):
-        print(f"Square {sq} ({bit_to_fr(sq)}):")
-        render_bitboard(PAWN_ATTACK_MASKS[player][sq], origin_sq=sq, symbol='x')
