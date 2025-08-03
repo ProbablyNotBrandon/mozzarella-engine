@@ -150,7 +150,7 @@ def generate_pawn_moves(p):
             flags = 0
 
             # If the target square is a promotion
-            if (56 * (1 - player)) <= dst_sq <= (63 * (1 - player)):
+            if (56 * player) <= dst_sq <= (7 + 56 * player):
                 move_list.append(encode_move(pawn_sq, dst_sq, Piece.PAWN, promotion=Piece.QUEEN, flags=QUEEN_PROMO))
                 move_list.append(encode_move(pawn_sq, dst_sq, Piece.PAWN, promotion=Piece.ROOK, flags=ROOK_PROMO))
                 move_list.append(encode_move(pawn_sq, dst_sq, Piece.PAWN, promotion=Piece.BISHOP, flags=BISHOP_PROMO))
