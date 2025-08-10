@@ -12,12 +12,12 @@
 // captured:    bits 16-19
 // promotion:   bits 20-22
 // flags:       bits 23-25
-uint32_t _FROM_SQ_MASK =     0b00000000000000000000000000111111;
-uint32_t _TO_SQ_MASK =       0b00000000000000000000111111000000;
-uint32_t _PIECE_MASK =       0b00000000000000000111000000000000;
-uint32_t _CAPTURED_MASK =    0b00000000000000111000000000000000;
-uint32_t _PROMOTION_MASK =   0b00000000000111000000000000000000;
-uint32_t _FLAGS_MASK =       0b00111111111000000000000000000000;
+extern uint32_t _FROM_SQ_MASK;
+extern uint32_t _TO_SQ_MASK;
+extern uint32_t _PIECE_MASK;
+extern uint32_t _CAPTURED_MASK;
+extern uint32_t _PROMOTION_MASK;
+extern uint32_t _FLAGS_MASK;
 
 // Flag encoding
 enum MoveFlags : uint32_t {
@@ -35,7 +35,7 @@ enum MoveFlags : uint32_t {
 };
 
 // Encode the move into a compact representation
-uint32_t encode_move(int from_sq, int to_sq, int piece, int captured=-1, int promotion=0, int flags=0);
+uint32_t encode_move(int from_sq, int to_sq, int piece, int captured=0, int promotion=0, int flags=0);
 
 // Function declarations for move decoding
 int get_from_sq(uint32_t move);

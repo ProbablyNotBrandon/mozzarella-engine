@@ -1,9 +1,13 @@
 #include "move.h"
 
-uint32_t encode_move(int from_sq, int to_sq, int piece, int captured=-1, int promotion=0, int flags=0) {
-    if (captured >= 0) { // TODO: modified this solution, review (if captured is a pawn, flag capture will resolve to false)
-        flags |= CAPTURE;
-    }
+uint32_t _FROM_SQ_MASK =     0b00000000000000000000000000111111;
+uint32_t _TO_SQ_MASK =       0b00000000000000000000111111000000;
+uint32_t _PIECE_MASK =       0b00000000000000000111000000000000;
+uint32_t _CAPTURED_MASK =    0b00000000000000111000000000000000;
+uint32_t _PROMOTION_MASK =   0b00000000000111000000000000000000;
+uint32_t _FLAGS_MASK =       0b00111111111000000000000000000000;
+
+uint32_t encode_move(int from_sq, int to_sq, int piece, int captured, int promotion, int flags) {
     return (uint32_t)(
         from_sq |
         to_sq << 6 |

@@ -1,25 +1,6 @@
-#include <string>
-#include <map>
-
-#include "castling_rights.h"
-#include "chess_utils.h"
-#include "move.h"
-#include "piece.h"
-#include "player.h"
-
-
-struct Position {
-    uint64_t bitboards[2][6]; // indexed with [player][piece]
-    Player player_to_move;
-    CastlingRights castling_rights[2];
-    int halfmoves; // currently unused
-    int fullmoves; // currently unused
-    int ep_target; // currently unused
-    int material_value[2];
-    std::vector<uint32_t> move_stack;
-    std::vector<CastlingRights> castling_rights_stack; // Push/pop 2 items at a time
-};
-
+#include "position.h"
+#include <iostream>
+#include "move_generation.h"
 
 Position init_position(std::string fen) {
     Position p;
@@ -73,13 +54,13 @@ Position init_position(std::string fen) {
     for (char c: fen_vec[3]) {
         switch (c) {
             case 'k':
-                p.castling_rights[Player::BLACK] |= (CastlingRights::KING | CastlingRights::KROOK);
+                p.castling_rights[Player::BLACK] |= CastlingRights::KING_MOVED | CastlingRights::KROOK;
             case 'q':
-                p.castling_rights[Player::BLACK] |= (CastlingRights::KING | CastlingRights::QROOK);
+                p.castling_rights[Player::BLACK] |= (CastlingRights::KING_MOVED | CastlingRights::QROOK);
             case 'K':
-                p.castling_rights[Player:: WHITE] |= (CastlingRights::KING | CastlingRights::KROOK);
+                p.castling_rights[Player:: WHITE] |= (CastlingRights::KING_MOVED | CastlingRights::KROOK);
             case 'Q':
-                p.castling_rights[Player::WHITE] |= (CastlingRights::KING | CastlingRights::QROOK);
+                p.castling_rights[Player::WHITE] |= (CastlingRights::KING_MOVED | CastlingRights::QROOK);
         }
     }
 
@@ -104,7 +85,7 @@ Position init_position(std::string fen) {
         for (int pc = 0; pc < 6; pc++) {
             uint64_t tmp = p.bitboards[pl][pc];
             while (tmp) {
-                int square = pop_lsb(tmp);
+                pop_lsb(tmp);
                 p.material_value[pl] += piece_value((Piece) pc);
             }
         }
@@ -117,14 +98,13 @@ Position init_position(std::string fen) {
 void move(Position *p, uint32_t move) {
     // MOVE DECODING
     uint32_t move_flags = get_flags(move);
-    Piece promotion_piece = get_promotion(move);
-    uint64_t from_bb = (uint64_t) 1 << get_from_sq(move);
-    uint64_t to_bb = (uint64_t) 1 << get_to_sq(move);
+    uint64_t from_bb = 1ULL << get_from_sq(move);
+    uint64_t to_bb = 1ULL << get_to_sq(move);
     Piece piece_moved = get_piece(move);
 
     // Handle forfeiting castling rights due to movement of pieces
     if (piece_moved == Piece::KING) {
-        p->castling_rights[p->player_to_move] &= ~(CastlingRights::KING);
+        p->castling_rights[p->player_to_move] &= ~(CastlingRights::KING_MOVED);
     } else if (piece_moved == Piece::ROOK) {
         if (from_bb == (1ULL << (56 * p->player_to_move))) {
             p->castling_rights[p->player_to_move] &= ~CastlingRights::QROOK;
@@ -135,19 +115,19 @@ void move(Position *p, uint32_t move) {
 
     // CASTLES
     if (move_flags & (MoveFlags::CASTLE)) {
-        int rook_from;
-        int rook_to;
+        int rook_from = 0;
+        int rook_to = 0;
         if (move_flags & MoveFlags::KING_CASTLE) {
             // Special adjustment of the rook bitboard in the event of a castle
             rook_from = 7 + 56 * p->player_to_move;
             rook_to = 5 + 56 * p->player_to_move;
 
-            p->castling_rights[p->player_to_move] &= ~(CastlingRights::KING | CastlingRights::KROOK);
+            p->castling_rights[p->player_to_move] &= ~(CastlingRights::KING_MOVED | CastlingRights::KROOK);
         } else if (move_flags & MoveFlags::QUEEN_CASTLE) {
             rook_from = 0 + 56 * p->player_to_move;
             rook_to = 2 + 56 * p->player_to_move;
 
-            p->castling_rights[p->player_to_move] &= ~(CastlingRights::KING | CastlingRights::QROOK);
+            p->castling_rights[p->player_to_move] &= ~(CastlingRights::KING_MOVED | CastlingRights::QROOK);
         }
         p->bitboards[p->player_to_move][Piece::ROOK] &= ~(1ULL << rook_from);
         p->bitboards[p->player_to_move][Piece::ROOK] |=  (1ULL << rook_to);
@@ -212,15 +192,14 @@ void unmove(Position *p, uint32_t move) {
 
     // MOVE DECODING
     uint32_t move_flags = get_flags(move);
-    Piece promotion_piece = get_promotion(move);
     uint64_t from_bb = (uint64_t) 1 << get_from_sq(move);
     uint64_t to_bb = (uint64_t) 1 << get_to_sq(move);
     Piece piece_moved = get_piece(move);
 
     // CASTLES
     if (move_flags & (MoveFlags::CASTLE)) {
-        int rook_from;
-        int rook_to;
+        int rook_from = 0;
+        int rook_to = 0;
         if (move_flags & MoveFlags::KING_CASTLE) {
             // Special adjustment of the rook bitboard in the event of a castle
             rook_from = 7 + 56 * p->player_to_move;
@@ -272,9 +251,9 @@ void unmove(Position *p, uint32_t move) {
     p->move_stack.pop_back();
 
     // Yes, I know this is kind of a weird way of handling the castling stack
-    CastlingRights b_last_rights = p->castling_rights_stack.back();
+    uint8_t b_last_rights = p->castling_rights_stack.back();
     p->castling_rights_stack.pop_back();
-    CastlingRights w_last_rights = p->castling_rights_stack.back();
+    uint8_t w_last_rights = p->castling_rights_stack.back();
     p->castling_rights_stack.pop_back();
 
     p->castling_rights[Player::BLACK] = b_last_rights;
@@ -282,7 +261,7 @@ void unmove(Position *p, uint32_t move) {
 }
 
 
-uint64_t get_player_occupied(Position *p, int player) {
+uint64_t get_occupied(Position *p, int player) {
     uint64_t occ = 0ULL;
     for (int i = 0; i < 6; i++) {
         occ = occ | p->bitboards[player][i];

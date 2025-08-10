@@ -17,7 +17,32 @@ const std::map<char, Piece> _chtopc = {
 };
 
 // Get the least significant bit index of the 64-bit bitboard <bb>
-inline int pop_lsb(uint64_t &bb);
+#if defined(__GNUC__) || defined(__clang__)
+inline int pop_lsb(uint64_t &bb) {
+    int index = __builtin_ctzll(bb);  // find LSB index
+    bb &= bb - 1;                     // clear LSB
+    return index;
+}
+#elif defined(_MSC_VER)
+#include <intrin.h>
+inline int pop_lsb(uint64_t &bb) {
+    unsigned long index;
+    _BitScanForward64(&index, bb);
+    bb &= bb - 1;
+    return static_cast<int>(index);
+}
+#else
+inline int pop_lsb(uint64_t &bb) {
+    int index = 0;
+    uint64_t b = bb;
+    while ((b & 1) == 0) {
+        b >>= 1;
+        ++index;
+    }
+    bb &= bb - 1;
+    return index;
+}
+#endif
 
 // Return the player corresponding to the character from the FEN
 Player chtopl(char c);
