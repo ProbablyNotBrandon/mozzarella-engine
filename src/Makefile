@@ -1,9 +1,6 @@
 CPPFLAGS = -g -Wall -Wextra -Werror 
 
-all: main perft perft_divide
-
-main: main.o position.o move_generation.o castling_rights.o move.o piece.o chess_utils.o
-	g++ ${CPPFLAGS} $^ -o $@
+all: perft perft_divide
 
 perft: perft.o position.o move_generation.o castling_rights.o move.o piece.o chess_utils.o
 	g++ ${CPPFLAGS} $^ -o $@
@@ -15,4 +12,4 @@ perft_divide: perft_divide.o position.o move_generation.o castling_rights.o move
 	g++ ${CPPFLAGS} -c $<
 
 clean:
-	rm *.o main perft perft_divide
+	rm *.o perft perft_divide
