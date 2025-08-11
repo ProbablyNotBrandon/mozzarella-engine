@@ -79,8 +79,6 @@ std::vector<uint32_t> generate_legal_moves(Position *p) {
     // return a pointer to the end of the array OR just an integer representing how many
     // moves were added.
 
-    // std::cout << is_in_check(p, p->player_to_move) << "\n"; 
-
     std::vector<uint32_t> legal_moves;
     Player player = p->player_to_move;
 
@@ -128,20 +126,35 @@ std::vector<uint32_t> generate_castle_moves(Position *p) {
     
     std::vector<uint32_t> moves;
     
+    // TODO: merge these shifts since they are the same, just different directions
     if (p->castling_rights[p->player_to_move] & CastlingRights::KING_UNMOVED) {
         if (p->castling_rights[p->player_to_move] & CastlingRights::QROOK) {
-            if (p->player_to_move == Player::WHITE && !(W_QS_CASTLE_MASK & all_occupied)) {
-                    moves.push_back(encode_move(4, 1, Piece::KING, 0, 0, MoveFlags::QUEEN_CASTLE));
-            } else if (p->player_to_move == Player::BLACK && !(B_QS_CASTLE_MASK & all_occupied)) {
-                    moves.push_back(encode_move(60, 57, Piece::KING, 0, 0, MoveFlags::QUEEN_CASTLE));
+            bool castle_through_check = false;
+            p->bitboards[p->player_to_move][Piece::KING] >>= 1;
+            if (is_in_check(p, p->player_to_move)) castle_through_check = true;
+            p->bitboards[p->player_to_move][Piece::KING] <<= 1;
+
+            if (!castle_through_check) {
+                if (p->player_to_move == Player::WHITE and !(W_QS_CASTLE_MASK & all_occupied)) {
+                        moves.push_back(encode_move(4, 2, Piece::KING, 0, 0, MoveFlags::QUEEN_CASTLE));
+                } else if (p->player_to_move == Player::BLACK && !(B_QS_CASTLE_MASK & all_occupied)) {
+                        moves.push_back(encode_move(60, 58, Piece::KING, 0, 0, MoveFlags::QUEEN_CASTLE));
+                }
             }
         }
 
         if (p->castling_rights[p->player_to_move] & CastlingRights::KROOK) {
-            if (p->player_to_move == Player::WHITE && !(W_KS_CASTLE_MASK & all_occupied)) {
-                moves.push_back(encode_move(4, 6, Piece::KING, 0, 0, KING_CASTLE));
-            } else if (p->player_to_move == Player::BLACK && !(B_KS_CASTLE_MASK & all_occupied)) {
-                moves.push_back(encode_move(60, 62, Piece::KING, 0, 0, KING_CASTLE));
+            bool castle_through_check = false;
+            p->bitboards[p->player_to_move][Piece::KING] <<= 1;
+            if (is_in_check(p, p->player_to_move)) castle_through_check = true;
+            p->bitboards[p->player_to_move][Piece::KING] >>= 1;
+
+            if (!castle_through_check) {
+                if (p->player_to_move == Player::WHITE and !(W_KS_CASTLE_MASK & all_occupied)) {
+                    moves.push_back(encode_move(4, 6, Piece::KING, 0, 0, KING_CASTLE));
+                } else if (p->player_to_move == Player::BLACK && !(B_KS_CASTLE_MASK & all_occupied)) {
+                    moves.push_back(encode_move(60, 62, Piece::KING, 0, 0, KING_CASTLE));
+                }
             }
         }
     }
@@ -206,13 +219,10 @@ std::vector<uint32_t> generate_pawn_moves(Position *p) {
         while (all_pawn_advances) {
             int to_sq = pop_lsb(all_pawn_advances);
 
-            // std::cout << to_sq << "\n";
-
             uint32_t flags = 0;
 
             // If the target square is a promotion
             if ((56 * (opponent)) <= to_sq && to_sq <= (7 + 56 * (opponent))) {
-                // std::cout << "GOT PROMOTION" << "\n";
                 moves.push_back(encode_move(pawn_sq, to_sq, Piece::PAWN, 0, Piece::QUEEN, MoveFlags::QUEEN_PROMO));
                 moves.push_back(encode_move(pawn_sq, to_sq, Piece::PAWN, 0, Piece::ROOK, MoveFlags::ROOK_PROMO));
                 moves.push_back(encode_move(pawn_sq, to_sq, Piece::PAWN, 0, Piece::BISHOP, MoveFlags::BISHOP_PROMO));
@@ -299,25 +309,17 @@ std::vector<uint32_t> generate_king_moves(Position *p) {
 
     uint64_t non_captures = king_move_bb & ~get_occupied(p, opponent);
     uint64_t captures = KING_MOVE_MASKS[king_sq] & get_occupied(p, opponent);
-
+    
     std::vector<uint32_t> moves;
 
-    // render_bitboard(captures & non_captures, -1, 'X');
-
-    //
-    
     while (non_captures) {
         int to_sq = pop_lsb(non_captures);
-        //if (to_sq == 19) {std::cout << "TO SQ IS 19 IN NON CAPTURES\n";}
         moves.push_back(encode_move(king_sq, to_sq, Piece::KING, 0, 0, 0));
     }
-
-    
 
     Piece attackable_pieces[] = {Piece::PAWN, Piece::KNIGHT, Piece::BISHOP, Piece::ROOK, Piece::QUEEN};
     while (captures) {
         int to_sq = pop_lsb(captures);
-        // if (to_sq == 19) {std::cout << "TO SQ IS 19 IN CAPTURES\n";}
         uint64_t to_bb = (1ULL << to_sq);
 
         for (Piece attackable_piece: attackable_pieces) {
@@ -326,10 +328,6 @@ std::vector<uint32_t> generate_king_moves(Position *p) {
             }
         } 
     }
-
-    // for (uint32_t m: moves) {
-    //     std::cout << get_from_sq(m) << " " << get_to_sq(m) << "\n";
-    // }
 
     return moves;
 }

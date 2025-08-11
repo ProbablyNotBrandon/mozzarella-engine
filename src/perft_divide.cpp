@@ -1,6 +1,5 @@
 #include "position.h"
 #include "player.h"
-#include "piece.h"
 #include "move_generation.h"
 #include "move.h"
 
@@ -8,7 +7,6 @@
 
 
 #include <string>
-#include <unordered_map>
 #include <sstream>
 
 std::string STARTPOS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -85,7 +83,6 @@ void perft_divide(Position *p, int depth) {
         move(p, m);
         int count = perft_new(p, depth - 1);
         unmove(p, m);
-
         std::cout << move_to_string(m) << ": " << count << "\n";
         total += count;
     }
