@@ -79,6 +79,8 @@ std::vector<uint32_t> generate_legal_moves(Position *p) {
     // return a pointer to the end of the array OR just an integer representing how many
     // moves were added.
 
+    // std::cout << is_in_check(p, p->player_to_move) << "\n"; 
+
     std::vector<uint32_t> legal_moves;
     Player player = p->player_to_move;
 
@@ -93,10 +95,13 @@ std::vector<uint32_t> generate_legal_moves(Position *p) {
         //generate_castle_moves
     };
 
+    // There could be an optimization here considering that there can only be 2 checking
+    // pieces at any given time.
+
     for (auto gen : generators) {
         for (uint32_t m : gen(p)) {
             move(p, m);
-            if (!is_in_sliding_check(p, player)) legal_moves.push_back(m);
+            if (!is_in_check(p, player)) legal_moves.push_back(m);
             unmove(p, m);
         }
     }
