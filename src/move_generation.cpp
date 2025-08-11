@@ -88,17 +88,31 @@ std::vector<uint32_t> generate_legal_moves(Position *p) {
         generate_knight_moves,
         generate_bishop_moves,
         generate_rook_moves,
-        generate_queen_moves,
-        generate_king_moves,
-        generate_castle_moves
+        generate_queen_moves//,
+        //generate_king_moves,
+        //generate_castle_moves
     };
 
     for (auto gen : generators) {
         for (uint32_t m : gen(p)) {
             move(p, m);
+            if (!is_in_sliding_check(p, player)) legal_moves.push_back(m);
+            unmove(p, m);
+        }
+    }
+
+    if (!is_in_check(p, player)) {
+        for (uint32_t m : generate_castle_moves(p)) {
+            move(p, m);
             if (!is_in_check(p, player)) legal_moves.push_back(m);
             unmove(p, m);
         }
+    }
+
+    for (uint32_t m : generate_king_moves(p)) {
+        move(p, m);
+        if (!is_in_check(p, player)) legal_moves.push_back(m);
+        unmove(p, m);
     }
 
     return legal_moves;
@@ -109,7 +123,7 @@ std::vector<uint32_t> generate_castle_moves(Position *p) {
     
     std::vector<uint32_t> moves;
     
-    if (p->castling_rights[p->player_to_move] & CastlingRights::KING_MOVED) {
+    if (p->castling_rights[p->player_to_move] & CastlingRights::KING_UNMOVED) {
         if (p->castling_rights[p->player_to_move] & CastlingRights::QROOK) {
             if (p->player_to_move == Player::WHITE && !(W_QS_CASTLE_MASK & all_occupied)) {
                     moves.push_back(encode_move(4, 1, Piece::KING, 0, 0, MoveFlags::QUEEN_CASTLE));
@@ -133,20 +147,20 @@ std::vector<uint32_t> generate_castle_moves(Position *p) {
 std::vector<uint32_t> generate_en_passant_moves(Position *p) {
     std::vector<uint32_t> moves;
 
-    if (!(p->move_stack.empty()) and get_flags(p->move_stack.back()) == MoveFlags::DOUBLE_PAWN_PUSH) {
+    if (!(p->move_stack.empty()) && get_flags(p->move_stack.back()) == MoveFlags::DOUBLE_PAWN_PUSH) {
         uint64_t occupied = (get_occupied(p, Player::WHITE) | get_occupied(p, Player::BLACK));
         
         int push_to_sq = get_to_sq(p->move_stack.back());
         int to_sq = push_to_sq + (1 - 2 * (p->player_to_move)) * 8;
         int double_push_file = push_to_sq % 8;
 
-        if (!(1 << to_sq & occupied)) {
-            if (p->bitboards[p->player_to_move][Piece::PAWN] & (1 << (push_to_sq - 1)) && double_push_file != 0) {
-                moves.push_back(encode_move(push_to_sq - 1, to_sq, Piece::PAWN, Piece::PAWN, 0, MoveFlags::EN_PASSANT));
+        if (!(1ULL << to_sq & occupied)) {
+            if (p->bitboards[p->player_to_move][Piece::PAWN] & (1ULL << (push_to_sq - 1)) && double_push_file != 0) {
+                moves.push_back(encode_move(push_to_sq - 1, to_sq, Piece::PAWN, Piece::PAWN, 0, MoveFlags::EN_PASSANT | MoveFlags::CAPTURE));
             }
 
-            if (p->bitboards[p->player_to_move][Piece::PAWN] & (1 << (push_to_sq + 1)) && double_push_file != 7) {
-                moves.push_back(encode_move(push_to_sq + 1, to_sq, Piece::PAWN, Piece::PAWN, 0, MoveFlags::EN_PASSANT));
+            if (p->bitboards[p->player_to_move][Piece::PAWN] & (1ULL << (push_to_sq + 1)) && double_push_file != 7) {
+                moves.push_back(encode_move(push_to_sq + 1, to_sq, Piece::PAWN, Piece::PAWN, 0, MoveFlags::EN_PASSANT | MoveFlags::CAPTURE));
             }
         }
     }
@@ -158,8 +172,8 @@ std::vector<uint32_t> generate_pawn_moves(Position *p) {
     Player player = p->player_to_move;
     Player opponent = Player (1 - player);
 
-    uint64_t occupied = get_occupied(p, Player::WHITE);
-    uint64_t opponent_occupied = get_occupied(p, Player::BLACK);
+    uint64_t occupied = get_occupied(p, player);
+    uint64_t opponent_occupied = get_occupied(p, opponent);
     uint64_t all_occupied = occupied | opponent_occupied;
     uint64_t pawn_bb = p->bitboards[p->player_to_move][Piece::PAWN];
 
@@ -168,17 +182,17 @@ std::vector<uint32_t> generate_pawn_moves(Position *p) {
     while (pawn_bb) {
         int pawn_sq = pop_lsb(pawn_bb);
 
-        uint64_t all_pawn_advances = PAWN_ADVANCE_MASKS[player][pawn_sq];
+        uint64_t all_pawn_advances = PAWN_ADVANCE_MASKS[player][pawn_sq] & ~(all_occupied);
 
         // Edge case: a pawn cannot advance two steps if obstructed
         // TODO: change this to use bitboards and shifting directly (there is an (incomplete) Python implementation of this)
         if (player == Player::WHITE && 8 <= pawn_sq && pawn_sq <= 15) {
-            if (all_occupied & (1 << (pawn_sq + 8))) {
-                all_pawn_advances &= ~(1 << (pawn_sq + 16));
+            if (all_occupied & (1ULL << (pawn_sq + 8))) {
+                all_pawn_advances &= ~(1ULL << (pawn_sq + 16));
             }
         } else if (player == Player::BLACK && 48 <= pawn_sq && pawn_sq <= 55) {
-            if (all_occupied & (1 << (pawn_sq - 8))) {
-                all_pawn_advances &= ~(1 << (pawn_sq - 16));
+            if (all_occupied & (1ULL << (pawn_sq - 8))) {
+                all_pawn_advances &= ~(1ULL << (pawn_sq - 16));
             }
         }
 
@@ -187,17 +201,20 @@ std::vector<uint32_t> generate_pawn_moves(Position *p) {
         while (all_pawn_advances) {
             int to_sq = pop_lsb(all_pawn_advances);
 
+            // std::cout << to_sq << "\n";
+
             uint32_t flags = 0;
 
             // If the target square is a promotion
-            if ((56 * player) <= to_sq && to_sq <= (7 + 56 * player)) {
+            if ((56 * (opponent)) <= to_sq && to_sq <= (7 + 56 * (opponent))) {
+                // std::cout << "GOT PROMOTION" << "\n";
                 moves.push_back(encode_move(pawn_sq, to_sq, Piece::PAWN, 0, Piece::QUEEN, MoveFlags::QUEEN_PROMO));
                 moves.push_back(encode_move(pawn_sq, to_sq, Piece::PAWN, 0, Piece::ROOK, MoveFlags::ROOK_PROMO));
                 moves.push_back(encode_move(pawn_sq, to_sq, Piece::PAWN, 0, Piece::BISHOP, MoveFlags::BISHOP_PROMO));
                 moves.push_back(encode_move(pawn_sq, to_sq, Piece::PAWN, 0, Piece::KNIGHT, MoveFlags::KNIGHT_PROMO));
                 break;
             }
-            if (std::abs(pawn_sq - to_sq)) {
+            if (std::abs(pawn_sq - to_sq) == 16) {
                 flags = DOUBLE_PAWN_PUSH;
             }
             moves.push_back(encode_move(pawn_sq, to_sq, Piece::PAWN, 0, 0, flags));
@@ -210,7 +227,7 @@ std::vector<uint32_t> generate_pawn_moves(Position *p) {
             int to_sq = pop_lsb(all_pawn_attacks);
 
             for (Piece attackable_piece: attackable_pieces) {
-                if (p->bitboards[opponent][attackable_piece] & (1 << to_sq)) {
+                if (p->bitboards[opponent][attackable_piece] & (1ULL << to_sq)) {
                     if ((56 * opponent) <= to_sq && to_sq <= (7 + 56 * opponent)) {
                         moves.push_back(encode_move(pawn_sq, to_sq, Piece::PAWN, attackable_piece, Piece::QUEEN, MoveFlags::QUEEN_PROMO | MoveFlags::CAPTURE));
                         moves.push_back(encode_move(pawn_sq, to_sq, Piece::PAWN, attackable_piece, Piece::ROOK, MoveFlags::ROOK_PROMO | MoveFlags::CAPTURE));
@@ -229,25 +246,25 @@ std::vector<uint32_t> generate_pawn_moves(Position *p) {
 
 std::vector<uint32_t> generate_knight_moves(Position *p) {
     Player player = p->player_to_move;
-    Player opponent = p->player_to_move;
+    Player opponent = (Player) (1 - p->player_to_move);
 
     uint64_t occupied = get_occupied(p, player);
     uint64_t opponent_occupied = get_occupied(p, opponent);
 
     std::vector<uint32_t> moves;
 
-    uint64_t knight_bb = p->bitboards[player][Piece::KNIGHT] & ~occupied;
+    uint64_t knight_bb = p->bitboards[player][Piece::KNIGHT];
 
     Piece attackable_pieces[] = {Piece::PAWN, Piece::KNIGHT, Piece::BISHOP, Piece::ROOK, Piece::QUEEN};
 
     while (knight_bb) {
         int knight_sq = pop_lsb(knight_bb);
 
-        uint64_t all_knight_moves = KNIGHT_MOVE_MASKS[knight_sq];
+        uint64_t all_knight_moves = KNIGHT_MOVE_MASKS[knight_sq] & ~occupied;
 
         while (all_knight_moves) {
             int to_sq = pop_lsb(all_knight_moves);
-            uint64_t to_bb = (1 << to_sq); 
+            uint64_t to_bb = (1ULL << to_sq); 
 
             if (opponent_occupied & to_bb) {
                 for (Piece attackable_piece: attackable_pieces) {
@@ -271,20 +288,32 @@ std::vector<uint32_t> generate_king_moves(Position *p) {
 
     int king_sq = pop_lsb(king_bb);
 
-    uint64_t non_captures = KING_MOVE_MASKS[king_sq] & ~get_occupied(p, p->player_to_move);
+    std::vector<int> to_sqs;
+
+    uint64_t king_move_bb = KING_MOVE_MASKS[king_sq] & ~get_occupied(p, p->player_to_move);
+
+    uint64_t non_captures = king_move_bb & ~get_occupied(p, opponent);
     uint64_t captures = KING_MOVE_MASKS[king_sq] & get_occupied(p, opponent);
 
     std::vector<uint32_t> moves;
+
+    // render_bitboard(captures & non_captures, -1, 'X');
+
+    //
     
     while (non_captures) {
         int to_sq = pop_lsb(non_captures);
+        //if (to_sq == 19) {std::cout << "TO SQ IS 19 IN NON CAPTURES\n";}
         moves.push_back(encode_move(king_sq, to_sq, Piece::KING, 0, 0, 0));
-    } 
+    }
+
+    
 
     Piece attackable_pieces[] = {Piece::PAWN, Piece::KNIGHT, Piece::BISHOP, Piece::ROOK, Piece::QUEEN};
     while (captures) {
-        int to_sq = pop_lsb(non_captures);
-        uint64_t to_bb = (1 << to_sq);
+        int to_sq = pop_lsb(captures);
+        // if (to_sq == 19) {std::cout << "TO SQ IS 19 IN CAPTURES\n";}
+        uint64_t to_bb = (1ULL << to_sq);
 
         for (Piece attackable_piece: attackable_pieces) {
             if (to_bb & p->bitboards[opponent][attackable_piece]) {
@@ -292,6 +321,10 @@ std::vector<uint32_t> generate_king_moves(Position *p) {
             }
         } 
     }
+
+    // for (uint32_t m: moves) {
+    //     std::cout << get_from_sq(m) << " " << get_to_sq(m) << "\n";
+    // }
 
     return moves;
 }
@@ -310,45 +343,6 @@ std::vector<uint32_t> generate_queen_moves(Position *p) {
     int deltas[] = {-9, -8, -7, -1, 1, 7, 8, 9};
     return generate_sliding_moves(p, Piece::QUEEN, deltas, 8);
 }
-
-// std::vector<uint32_t> generate_legal_king_moves(Position *p) {
-//     Player player = p->player_to_move;
-//     Player opponent = (Player) (1 - player);
-
-//     uint64_t unsafe_squares = generate_king_unsafe_squares(p, player);
-
-//     int king_sq = pop_lsb(p->bitboards[player][Piece::KING]);
-
-//     uint64_t occupied = get_occupied(p, player);
-//     uint64_t opponent_occupied = get_occupied(p, opponent);  
-
-//     uint64_t king_moves = KING_MOVE_MASKS[king_sq] & ~occupied;
-
-//     Piece attackable_pieces[] = {Piece::PAWN, Piece::KNIGHT, Piece::BISHOP, Piece::ROOK, Piece::QUEEN};
-
-//     std::vector<uint32_t> moves;
-
-//     while (king_moves) {
-//         int to_sq = pop_lsb(king_moves);
-//         uint64_t to_bb = (1 << to_sq);
-
-//         if (opponent_occupied & to_bb) {
-//             // Now that I think of it I really should implement a get_piece_at_square function
-//             for (Piece attackable_piece: attackable_pieces) {
-//                 if (p->bitboards[opponent][attackable_piece] & to_bb && !(unsafe_squares & to_bb)) {
-//                     moves.push_back(encode_move(king_sq, to_sq, Piece::KING, attackable_piece, 0, MoveFlags::CAPTURE));
-//                     break;
-//                 }
-//             }
-//         } else {
-//             if (!(unsafe_squares & to_bb)) {
-//                 moves.push_back(encode_move(king_sq, to_sq, Piece::KING, 0, 0, 0));
-//             }
-//         }
-//     }
-
-//     return moves;
-// }
 
 std::vector<uint32_t> generate_sliding_moves(Position *p, Piece piece, int deltas[], int ndeltas) {
     Player player = p->player_to_move;
@@ -373,12 +367,12 @@ std::vector<uint32_t> generate_sliding_moves(Position *p, Piece piece, int delta
 
             for (int step = 1; step < 8; step++) {
                 int to_sq = piece_sq + deltas[i] * step;
-                uint64_t to_bb = (1 << to_sq);
+                uint64_t to_bb = (1ULL << to_sq);
                 int to_file = to_sq % 8;
 
                 if ((to_sq < 0 || to_sq > 63)
                     || (abs(to_file - last_file) > 1)
-                    || (occupied & (1 << to_sq))) {
+                    || (occupied & (1ULL << to_sq))) {
                     break;
                 }
 
@@ -389,6 +383,7 @@ std::vector<uint32_t> generate_sliding_moves(Position *p, Piece piece, int delta
                             break;
                         }
                     }
+                    break;
                 } else {
                     moves.push_back(encode_move(piece_sq, to_sq, piece, 0, 0, 0));
                 }
@@ -409,7 +404,10 @@ bool is_in_check(Position *p, Player player) {
     if (KNIGHT_MOVE_MASKS[king_sq] & p->bitboards[opponent][Piece::KNIGHT]) {
         return true;
     }
-    if (PAWN_ATTACK_MASKS[opponent][king_sq] & p->bitboards[opponent][Piece::PAWN]) {
+    if (PAWN_ATTACK_MASKS[player][king_sq] & p->bitboards[opponent][Piece::PAWN]) {
+        return true;
+    }
+    if (KING_MOVE_MASKS[king_sq] & p->bitboards[opponent][Piece::KING]) {
         return true;
     }
 
@@ -441,7 +439,7 @@ bool is_in_sliding_check(Position* p, Player player) {
 
             for (int step = 1; step < 8; step++) {
                 int to_sq = king_sq + deltas[i][j] * step;
-                uint64_t to_bb = (1 << to_sq);
+                uint64_t to_bb = (1ULL << to_sq);
                 int to_file = to_sq % 8;
 
                 if (to_sq < 0 || to_sq > 63) break;

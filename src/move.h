@@ -31,7 +31,7 @@ enum MoveFlags : uint32_t {
     BISHOP_PROMO        = 1 << 27,
     ROOK_PROMO          = 1 << 28,
     QUEEN_PROMO         = 1 << 29,
-    PROMO               = (1 << 26 | 1 << 27 | 1 << 28 | 1 << 29)
+    PROMO               = ((1 << 26) | (1 << 27) | (1 << 28) | (1 << 29))
 };
 
 // Encode the move into a compact representation

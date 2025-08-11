@@ -13,8 +13,8 @@ uint32_t encode_move(int from_sq, int to_sq, int piece, int captured, int promot
         to_sq << 6 |
         piece << 12 |
         captured << 15 |
-        promotion << 18 |
-        flags << 21);
+        promotion << 18 | // maybe we could find some way to avoid this shift?
+        flags);
 }
 
 
