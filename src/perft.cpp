@@ -72,5 +72,15 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i <= 6; i++) {
         std::cout << "Depth: " << i << "\tNodes: " << perft(&p4, i) << "\t\tExpected: " << pos4_exp[i] << "\n";
     }
+
+    
+    std::cout << "\nPosition 5\n";
+    std::string pos5 = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8";
+    Position p5 = init_position(pos5);
+    long pos5_exp[] = {1, 44, 1486, 62379, 2103487, 89941194};
+
+    for (int i = 0; i <= 5; i++) {
+        std::cout << "Depth: " << i << "\tNodes: " << perft(&p5, i) << "\t\tExpected: " << pos5_exp[i] << "\n";
+    }
 }
 
