@@ -1,15 +1,10 @@
 #include "position.h"
-#include "player.h"
-#include "piece.h"
 #include "move_generation.h"
-#include "move.h"
 
 #include <iostream>
 
 
 #include <string>
-#include <unordered_map>
-#include <sstream>
 
 
 
@@ -40,13 +35,10 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char* argv[]) {
 
     // Position p = init_position(FEN);
     Position p = init_position(STARTPOS);
-    
-
-    // perft_divide(&p, DEPTH);
 
     long exp_perft[] = {1, 20, 400, 8902, 197281, 4865609, 119060324, 3195901860};
 
-    for (int i = DEPTH; i <= DEPTH; i++) {
+    for (int i = 0; i <= DEPTH; i++) {
         std::cout << "Depth: " << i << "\tNodes: " << perft(&p, i) << "\t\tExpected: " << exp_perft[i] << "\n";
     }
 }
