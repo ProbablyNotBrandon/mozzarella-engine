@@ -1,8 +1,6 @@
 #ifndef __MOVE_GENERATION_H__
 #define __MOVE_GENERATION_H__
 
-
-
 #include <vector>
 #include <iostream>
 #include <cmath>
@@ -11,6 +9,7 @@
 #include "position.h"
 #include "piece.h"
 #include "player.h"
+#include "chess_utils.h"
 
 
 extern uint64_t PAWN_ADVANCE_MASKS[2][64];

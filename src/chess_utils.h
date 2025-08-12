@@ -3,9 +3,13 @@
 
 #include <cstdint>
 #include <map>
+#include <sstream>
+#include <iostream>
+#include <string>
 
 #include "piece.h"
 #include "player.h"
+#include "move.h"
 
 const std::map<char, Piece> _chtopc = {
     {'p', Piece::PAWN},
@@ -44,6 +48,12 @@ inline int pop_lsb(uint64_t &bb) {
 }
 #endif
 
+// Translate a square number to a standard coordinate string.
+std::string square_to_coord(int sq);
+
+// Return the string form of an encoded move.
+std::string move_to_string(uint32_t move);
+
 // Return the player corresponding to the character from the FEN
 Player chtopl(char c);
 
@@ -53,4 +63,7 @@ Piece chtopc(char c);
 // Splits a string based on delimiter and returns the pieces as a vector of strings (GPT CODE)
 std::vector<std::string> split_str(const std:: string& s, char delimiter);
 
+
+// Output the chess board to the console.
+void render_board(void *v);
 #endif

@@ -2,13 +2,16 @@
 #define __POSITION_H__
 
 #include <string>
+#include <iostream>
 #include <map>
 
 #include "castling_rights.h"
-#include "chess_utils.h"
 #include "move.h"
 #include "piece.h"
 #include "player.h"
+#include "chess_utils.h"
+
+
 
 // Position struct, containing all relevant game state information
 struct Position {
@@ -22,7 +25,6 @@ struct Position {
     std::vector<uint32_t> move_stack;
     std::vector<uint8_t> castling_rights_stack; // Push/pop 2 items at a time
 };
-
 
 // Initialize and return a Position struct from the given FEN string
 Position init_position(std::string fen);
