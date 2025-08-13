@@ -109,6 +109,9 @@ void move(Position *p, uint32_t move) {
     uint32_t move_flags = get_flags(move);
     uint64_t from_bb = 1ULL << get_from_sq(move);
     uint64_t to_bb = 1ULL << get_to_sq(move);
+
+    if (from_bb & to_bb) return;
+
     Piece piece_moved = get_piece(move);
 
     // Handle move stack and castling rights stack
@@ -203,6 +206,7 @@ void unmove(Position *p, uint32_t move) {
     uint32_t move_flags = get_flags(move);
     uint64_t from_bb = (uint64_t) 1 << get_from_sq(move);
     uint64_t to_bb = (uint64_t) 1 << get_to_sq(move);
+    if (from_bb & to_bb) return;
     Piece piece_moved = get_piece(move);
 
     // CASTLES

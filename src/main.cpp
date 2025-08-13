@@ -1,6 +1,12 @@
 #include "position.h"
 #include "move_pick.h"
 #include "chess_utils.h"
+#include "move_generation.h"
+
+#include <random>
+#include <chrono>
+
+static std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
 
 int main(__attribute((unused)) int argc, __attribute((unused)) char * argv[]) {
 
@@ -10,7 +16,7 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char * argv[]) {
     while (true) {
         std::cout << "White thinking...\n";
 
-        uint32_t best = find_best_move(&p, 5);
+        uint32_t best = find_best_move(&p, 4);
 
         if (!best) {break;}
 
@@ -21,12 +27,16 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char * argv[]) {
 
         std::cout << "Black thinking...\n";
 
-        best = find_best_move(&p, 5);
+        std::vector<uint32_t> black_moves = generate_legal_moves(&p);
+        if (black_moves.empty()) break;
 
-        if (!best) {break;}
+        std::uniform_int_distribution<std::size_t> dist(0, black_moves.size() - 1);
+        size_t random_index = dist(rng);
 
-        std::cout << "Black plays: " << move_to_string(best) << "\n";
-        move(&p, best);
+        uint32_t black_move = black_moves[random_index];
+
+        std::cout << "Black plays: " << move_to_string(black_move) << "\n";
+        move(&p, black_move);
         render_board(&p);
     }
 

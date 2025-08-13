@@ -9,7 +9,7 @@ uint32_t find_best_move(Position *p, int depth) {
 
     for (uint32_t m: moves) {
         move(p, m);
-        int score = search(p, depth - 1);
+        int score = -search(p, depth - 1);
         unmove(p, m);
 
         if (score > best_score) {
