@@ -1,9 +1,9 @@
 #include "chess_utils.h"
 #include "position.h"
 
-const char piece_chars[2][6] = {
-    { 'P', 'N', 'B', 'R', 'Q', 'K' }, // White
-    { 'p', 'n', 'b', 'r', 'q', 'k' }  // Black
+const std::string piece_chars[2][6] = {
+    { "♟", "♞", "♝", "♜", "♛", "♚" }, // White
+    { "♙", "♘", "♗", "♖", "♕", "♔" }  // Black
 };
 
 void render_board(void *v) {
@@ -13,7 +13,7 @@ void render_board(void *v) {
         std::cout << rank + 1 << " ";
         for (int file = 0; file < 8; ++file) {
             int sq = rank * 8 + file;
-            char piece_char = '.';
+            std::string piece_char = ".";
             for (int pl = 0; pl < 2; ++pl) {
                 for (int pc = 0; pc < 6; ++pc) {
                     if (p->bitboards[pl][pc] & (1ULL << sq)) {

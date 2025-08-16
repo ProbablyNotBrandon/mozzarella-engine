@@ -16,7 +16,7 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char * argv[]) {
     while (true) {
         std::cout << "White thinking...\n";
 
-        uint32_t best = find_best_move(&p, 4);
+        uint32_t best = find_best_move(&p, 40);
 
         if (!best) {break;}
 
@@ -26,6 +26,13 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char * argv[]) {
         render_board(&p);
 
         std::cout << "Black thinking...\n";
+
+        // best = find_best_move(&p, 5);
+
+        // if (!best) {break;}
+
+        // std::cout << "Black plays: " << move_to_string(best) << "\n";
+        // move(&p, best);
 
         std::vector<uint32_t> black_moves = generate_legal_moves(&p);
         if (black_moves.empty()) break;
@@ -37,6 +44,7 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char * argv[]) {
 
         std::cout << "Black plays: " << move_to_string(black_move) << "\n";
         move(&p, black_move);
+
         render_board(&p);
     }
 

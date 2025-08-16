@@ -2,6 +2,16 @@
 
 const int MATE_SCORE = 1000000;
 
+struct TTEntry {
+    uint64_t key;
+    int depth;
+    int score;
+    enum bound { EXACT, LOWER, UPPER } flag;
+};
+
+constexpr size_t TT_SIZE= 1 << 20;
+TTEntry TT[TT_SIZE];
+
 int _mvv_lva[6][6] = {
     // Attacker: Pawn, Knight, Bishop, Rook, Queen, King
     {105, 205, 305, 405, 505, 605}, // Victim: Pawn
@@ -54,13 +64,23 @@ int search(Position *p, int depth, int alpha, int beta) {
 
     std::vector<uint32_t> moves = generate_legal_moves(p);
 
-    if (depth == 0) return q_search(p, alpha, beta, 6);
+    uint64_t z = zobrist(p);
+    TTEntry entry = TT[z % TT_SIZE];
+    if (entry.key == z and entry.depth > depth) {
+        if (entry.flag == TTEntry::EXACT) return entry.score;
+        else if (entry.flag == TTEntry::LOWER and entry.score >= beta) return entry.score;
+        else if (entry.flag == TTEntry::UPPER and entry.score <= alpha) return entry.score;
+    }
+    
+
+    if (depth == 0) return q_search(p, alpha, beta, 20);
 
     if (moves.empty()) {
         if (is_in_check(p, p->player_to_move)) return -MATE_SCORE + (6 - depth); // Checkmate
         else return 0; // Stalemate
     }
 
+    int alpha_orig = alpha;
     int best_score = INT_MIN;
 
     std::vector<uint32_t> capture_moves;
@@ -88,6 +108,14 @@ int search(Position *p, int depth, int alpha, int beta) {
             if (alpha >= beta) break;
         }
     }
+
+    TTEntry &ins = TT[z % TT_SIZE];
+    ins.key = z;
+    ins.score = best_score;
+    ins.depth = depth;
+    if (best_score <= alpha_orig) ins.flag = TTEntry::UPPER;
+    else if (best_score >= beta) ins.flag = TTEntry::LOWER;
+    else ins.flag = TTEntry::EXACT;
 
     return best_score;
 }

@@ -1,5 +1,8 @@
 #include "position.h"
 
+uint64_t _ZOBRIST_ARR[781];
+
+
 Position init_position(std::string fen) {
     Position p;
 
@@ -280,4 +283,56 @@ uint64_t get_occupied(Position *p, int player) {
         occ = occ | p->bitboards[player][i];
     }
     return occ;
+}
+
+void init_zobrist() {
+    std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
+    std::uniform_int_distribution<uint64_t> dist;
+    for (int i = 0; i < 781; i++) {
+        _ZOBRIST_ARR[i] = dist(rng);
+    }
+}
+
+uint64_t zobrist(Position *p) {
+
+    uint64_t z = 0ULL;
+
+    // XOR the values for each piece on each square of the board
+    for (int i = 0; i < 12; i++) {
+        uint64_t bb = p->bitboards[i / 6][i % 6];
+        while (bb) {
+            int sq = pop_lsb(bb); 
+            z ^= _ZOBRIST_ARR[i + sq * 12];
+        }
+    }
+
+    // XOR the values for each castling right
+    int wcr = p->castling_rights[Player::WHITE];
+    int bcr = p->castling_rights[Player::BLACK];
+
+    if (wcr & CastlingRights::KING_UNMOVED) {
+        if (wcr & CastlingRights::KROOK) z ^= _ZOBRIST_ARR[768];
+        if (wcr & CastlingRights::QROOK) z ^= _ZOBRIST_ARR[769];
+    }
+
+    if (bcr & CastlingRights::KING_UNMOVED) {
+        if (bcr & CastlingRights::KROOK) z ^= _ZOBRIST_ARR[770];
+        if (bcr & CastlingRights::QROOK) z ^= _ZOBRIST_ARR[771];
+    }
+
+    // Include the EP target in the hash
+    if (p->ep_target != -1) {
+        int ep_file = p->ep_target % 8;
+
+        if ((ep_file > 0 && p->bitboards[p->player_to_move][Piece::PAWN] & (1ULL << (p->ep_target - 1))) ||
+            (ep_file < 7 && p->bitboards[p->player_to_move][Piece::PAWN] & (1ULL << (p->ep_target + 1)))) {
+            z ^= _ZOBRIST_ARR[772 + ep_file];
+        }
+    }
+    
+    // Include the player to move in the hash
+    if (p->player_to_move == Player::BLACK) z ^= _ZOBRIST_ARR[780];
+
+    return z;
+
 }

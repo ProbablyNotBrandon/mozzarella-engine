@@ -4,6 +4,8 @@
 #include <string>
 #include <iostream>
 #include <map>
+#include <chrono>
+#include <random>
 
 #include "castling_rights.h"
 #include "move.h"
@@ -37,5 +39,8 @@ void unmove(Position *p, uint32_t move);
 
 // Get a bitboard of all the squares occupied by the chosen player
 uint64_t get_occupied(Position *p, int player);
+
+// Returns the (64 bit) Zobrist hash of the position
+uint64_t zobrist(Position *p);
 
 #endif
