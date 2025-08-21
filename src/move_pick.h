@@ -2,6 +2,7 @@
 #define __MOVE_PICK_H__
 
 #include <cstdint>
+#include <fstream>
 
 #include "move_generation.h"
 #include "position.h"

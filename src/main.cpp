@@ -9,14 +9,28 @@
 static std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
 
 int main(__attribute((unused)) int argc, __attribute((unused)) char * argv[]) {
+    // Clear move logs
+    std::ofstream("log", std::ios::trunc).close();
 
     Position p = init_position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     render_board(&p);
 
+    int move_count = 0;
     while (true) {
+        std::cout << "Moves: " << move_count++ << std::endl;
+        bool sm_flag = true;
+        for (int pl = 0; pl < 2; pl++) {
+            for (int pc = 0; pc < 5; pc++) {
+                if (p.bitboards[pl][pc] != 0) sm_flag = false;
+            }
+        }
+        if (sm_flag) {
+            std::cout << "STALEMATE\n";
+            return -1;
+        }
         std::cout << "White thinking...\n";
 
-        uint32_t best = find_best_move(&p, 40);
+        uint32_t best = find_best_move(&p, 4);
 
         if (!best) {break;}
 

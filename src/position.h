@@ -40,6 +40,9 @@ void unmove(Position *p, uint32_t move);
 // Get a bitboard of all the squares occupied by the chosen player
 uint64_t get_occupied(Position *p, int player);
 
+// Initialize the Zobrist hashing array (64 random ULL numbers)
+void init_zobrist();
+
 // Returns the (64 bit) Zobrist hash of the position
 uint64_t zobrist(Position *p);
 

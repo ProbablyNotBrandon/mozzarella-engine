@@ -4,6 +4,7 @@ uint64_t _ZOBRIST_ARR[781];
 
 
 Position init_position(std::string fen) {
+    init_zobrist();
     Position p;
 
     // Zero out the bitboards
@@ -291,6 +292,7 @@ void init_zobrist() {
     for (int i = 0; i < 781; i++) {
         _ZOBRIST_ARR[i] = dist(rng);
     }
+
 }
 
 uint64_t zobrist(Position *p) {

@@ -1,15 +1,5 @@
 #include "search.h"
 
-const int MATE_SCORE = 1000000;
-
-struct TTEntry {
-    uint64_t key;
-    int depth;
-    int score;
-    enum bound { EXACT, LOWER, UPPER } flag;
-};
-
-constexpr size_t TT_SIZE= 1 << 20;
 TTEntry TT[TT_SIZE];
 
 int _mvv_lva[6][6] = {
@@ -27,9 +17,9 @@ int mvv_lva(uint32_t m) {
     return 0;
 }
 
-int q_search(Position *p, int alpha, int beta, int depth) {
-    int best_score = evaluate(p, p->player_to_move);
-    if (depth == 0) return best_score;
+int q_search(Position *p, int alpha, int beta) {
+    int best_score = evaluate(p);
+    // if (depth == 0) return best_score;
 
     if (best_score >= beta) return best_score;
     if (best_score > alpha) alpha = best_score;
@@ -49,7 +39,7 @@ int q_search(Position *p, int alpha, int beta, int depth) {
 
     for (uint32_t m: noisy_moves) {
         move(p, m);
-        int score = -q_search(p, -beta, -alpha, depth - 1);
+        int score = q_search(p, -beta, -alpha);
         unmove(p, m);
 
         if (score > beta) return score;
@@ -73,7 +63,7 @@ int search(Position *p, int depth, int alpha, int beta) {
     }
     
 
-    if (depth == 0) return q_search(p, alpha, beta, 20);
+    if (depth == 0) return q_search(p, alpha, beta);
 
     if (moves.empty()) {
         if (is_in_check(p, p->player_to_move)) return -MATE_SCORE + (6 - depth); // Checkmate
@@ -110,6 +100,7 @@ int search(Position *p, int depth, int alpha, int beta) {
     }
 
     TTEntry &ins = TT[z % TT_SIZE];
+    if (ins.key == 0) TT_OCCUPANCY++;
     ins.key = z;
     ins.score = best_score;
     ins.depth = depth;
