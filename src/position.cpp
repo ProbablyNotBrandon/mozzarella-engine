@@ -92,17 +92,21 @@ Position init_position(std::string fen) {
 
     p.material_value[0] = 0;
     p.material_value[1] = 0;
+    p.pst_eval = 0;
 
     // Calculate starting material value
     for (int pl = 0; pl < 2; pl++) {
-        for (int pc = 0; pc < 6; pc++) {
+        for (int pc = 0; pc < 5; pc++) {
             uint64_t tmp = p.bitboards[pl][pc];
             while (tmp) {
-                pop_lsb(tmp);
+                int sq = pop_lsb(tmp);
                 p.material_value[pl] += piece_value((Piece) pc);
+                p.pst_eval += PST[pl][pc][sq];
             }
         }
     }
+
+    p.pst_eval_stack.push_back(p.pst_eval);
 
     return p;
 }
@@ -118,10 +122,19 @@ void move(Position *p, uint32_t move) {
 
     Piece piece_moved = get_piece(move);
 
+
     // Handle move stack and castling rights stack
     p->move_stack.push_back(move);
     p->castling_rights_stack.push_back(p->castling_rights[Player::WHITE]);
     p->castling_rights_stack.push_back(p->castling_rights[Player::BLACK]);
+
+    // Handle eval stack
+    p->pst_eval_stack.push_back(p->pst_eval);
+
+    // Update PST, removing the value from the starting square
+    if (piece_moved != Piece::KING) {
+        p->pst_eval -= PST[p->player_to_move][piece_moved][get_from_sq(move)];
+    }
 
     // Handle forfeiting castling rights due to movement of pieces
     if (piece_moved == Piece::KING) {
@@ -136,22 +149,35 @@ void move(Position *p, uint32_t move) {
 
     // CASTLES
     if (move_flags & (MoveFlags::CASTLE)) {
+        // int king_from = 4 + 56 * p->player_to_move;
+        // int king_to;
         int rook_from = 0;
         int rook_to = 0;
+
         if (move_flags & MoveFlags::KING_CASTLE) {
-            // Special adjustment of the rook bitboard in the event of a castle
+            // king_to = king_from + 2;
             rook_from = 7 + 56 * p->player_to_move;
             rook_to = 5 + 56 * p->player_to_move;
 
             p->castling_rights[p->player_to_move] &= ~(CastlingRights::KING_UNMOVED | CastlingRights::KROOK);
         } else if (move_flags & MoveFlags::QUEEN_CASTLE) {
+            // king_to = king_from - 2;
             rook_from = 0 + 56 * p->player_to_move;
             rook_to = 3 + 56 * p->player_to_move;
 
             p->castling_rights[p->player_to_move] &= ~(CastlingRights::KING_UNMOVED | CastlingRights::QROOK);
         }
+
+        // Move king
+        // p->pst_eval -= PST[p->player_to_move][Piece::KING][king_from];
+        // p->pst_eval += PST[p->player_to_move][Piece::KING][king_to];
+
+        // Move rook
         p->bitboards[p->player_to_move][Piece::ROOK] &= ~(1ULL << rook_from);
         p->bitboards[p->player_to_move][Piece::ROOK] |=  (1ULL << rook_to);
+        p->pst_eval -= PST[p->player_to_move][Piece::ROOK][rook_from];
+        p->pst_eval += PST[p->player_to_move][Piece::ROOK][rook_to];
+
     } else if (move_flags & MoveFlags::DOUBLE_PAWN_PUSH) {
         if (p->player_to_move == Player::WHITE) {
             // TODO: do we want to handle en passant this way?
@@ -168,6 +194,8 @@ void move(Position *p, uint32_t move) {
         if (!(move_flags & MoveFlags::EN_PASSANT)) {
             p->bitboards[1 - p->player_to_move][piece_captured] &= ~to_bb;
 
+            p->pst_eval -= PST[1 - p->player_to_move][piece_captured][get_to_sq(move)];
+
             // If the captured piece was a rook in the corner, then opponent can no longer castle on that side
             if (piece_captured == Piece::ROOK) {
                 if (to_bb == (1ULL << (56 * (1 - p->player_to_move)))) {
@@ -177,6 +205,8 @@ void move(Position *p, uint32_t move) {
                 }
             }
         } else {
+            int captured_sq = (p->player_to_move == Player::WHITE) ? get_to_sq(move) - 8 : get_to_sq(move) + 8;
+            p->pst_eval -= PST[1 - p->player_to_move][Piece::PAWN][captured_sq];
             if (p->player_to_move == Player::WHITE) {
                 p->bitboards[1 - p->player_to_move][Piece::PAWN] &= ~(to_bb >> 8);
             } else if (p->player_to_move == Player::BLACK) {
@@ -188,11 +218,22 @@ void move(Position *p, uint32_t move) {
     // PROMOTIONS
     if (move_flags & (MoveFlags::PROMO)) {
         Piece promo_piece = get_promotion(move);
+
         p->bitboards[p->player_to_move][promo_piece] |= to_bb;
-        p->material_value[p->player_to_move] += piece_value(promo_piece);
-        p->material_value[p->player_to_move] -= piece_value(Piece::PAWN);
+
+        // Material update
+        p->material_value[p->player_to_move] += piece_value(promo_piece) -  piece_value(Piece::PAWN);
+
+        // PST update
+        p->pst_eval += PST[p->player_to_move][promo_piece][get_to_sq(move)];
+        p->pst_eval -= PST[p->player_to_move][Piece::PAWN][get_from_sq(move)];
+
     } else {
         p->bitboards[p->player_to_move][piece_moved] |= to_bb;
+
+        if (piece_moved != Piece::KING) {
+            p->pst_eval += PST[p->player_to_move][piece_moved][get_to_sq(move)];
+        }
     }
 
     // Remove the moved piece from the original square
@@ -238,6 +279,8 @@ void unmove(Position *p, uint32_t move) {
     // CAPTURES
     if (move_flags & MoveFlags::CAPTURE) {
         Piece piece_captured = get_captured(move);
+
+        // Material restore
         p->material_value[1 - p->player_to_move] += piece_value(piece_captured);
 
         if (!(move_flags & MoveFlags::EN_PASSANT)) {
@@ -255,8 +298,10 @@ void unmove(Position *p, uint32_t move) {
     if (move_flags & (MoveFlags::PROMO)) {
         Piece promo_piece = get_promotion(move);
         p->bitboards[p->player_to_move][promo_piece] &= ~to_bb;
-        p->material_value[p->player_to_move] -= piece_value(promo_piece);
-        p->material_value[p->player_to_move] += piece_value(Piece::PAWN);
+
+        // Material restore
+        p->material_value[p->player_to_move] -= piece_value(promo_piece) - piece_value(Piece::PAWN);
+
     } else {
         p->bitboards[p->player_to_move][piece_moved] &= ~to_bb;
     }
@@ -266,6 +311,10 @@ void unmove(Position *p, uint32_t move) {
 
     // Handle move stack and castling rights stack
     p->move_stack.pop_back();
+
+    // Pop the last eval
+    p->pst_eval = p->pst_eval_stack.back();
+    p->pst_eval_stack.pop_back();
 
     // Yes, I know this is kind of a weird way of handling the castling stack
     uint8_t b_last_rights = p->castling_rights_stack.back();

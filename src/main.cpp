@@ -5,6 +5,7 @@
 
 #include <random>
 #include <chrono>
+#include <thread>
 
 static std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
 
@@ -17,7 +18,6 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char * argv[]) {
 
     int move_count = 0;
     while (true) {
-        std::cout << "Moves: " << move_count++ << std::endl;
         bool sm_flag = true;
         for (int pl = 0; pl < 2; pl++) {
             for (int pc = 0; pc < 5; pc++) {
@@ -56,15 +56,18 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char * argv[]) {
 
         uint32_t black_move = black_moves[random_index];
 
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+
         std::cout << "Black plays: " << move_to_string(black_move) << "\n";
         move(&p, black_move);
 
         render_board(&p);
+        move_count++;
     }
 
     if (is_in_check(&p, p.player_to_move)) std::cout << "CHECKMATE\n";
     else std::cout << "STALEMATE\n";
 
-
+    std::cout << "Moves: " << move_count++ << std::endl;
 
 }
