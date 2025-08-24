@@ -30,6 +30,14 @@ void render_board(void *v) {
     std::cout << "  a b c d e f g h\n";
 }
 
+
+int coord_to_sq(std::string s) {
+    int file = s[0] - 'a';         // 'a'..'h' → 0..7
+    int rank = s[1] - '1';         // '1'..'8' → 0..7
+    return rank * 8 + file;        // row-major, a1=0, h8=63
+}
+
+
 std::string square_to_coord(int sq) {
     char file = 'a' + (sq % 8);
     char rank = '1' + (sq / 8);
@@ -39,38 +47,18 @@ std::string square_to_coord(int sq) {
 std::string move_to_string(uint32_t move) {
     int from_sq = get_from_sq(move);
     int to_sq   = get_to_sq(move);
-    // uint32_t flags = get_flags(move);
-
-    // Map single flags to their names
-    // static const std::unordered_map<uint32_t, std::string> flag_names = {
-    //     {DOUBLE_PAWN_PUSH,        "Double Pawn Push"},
-    //     {EN_PASSANT,              "En Passant"},
-    //     {KING_CASTLE,             "King Castle"},
-    //     {QUEEN_CASTLE,            "Queen Castle"},
-    //     {CAPTURE,                 "Capture"},
-    //     {KNIGHT_PROMO,            "Knight Promo"},
-    //     {BISHOP_PROMO,            "Bishop Promo"},
-    //     {ROOK_PROMO,              "Rook Promo"},
-    //     {QUEEN_PROMO,             "Queen Promo"},
-    // };
-
     std::ostringstream oss;
-    oss << square_to_coord(from_sq) << square_to_coord(to_sq); //s" (";
-
-    // bool first = true;
-    // for (auto &kv : flag_names) {
-    //     if (flags & kv.first) {
-    //         if (!first) oss << " ";
-    //         oss << kv.second;
-    //         first = false;
-    //     }
-    // }
-
-    // if (first) { // No flags matched
-    //     oss << "Quiet";
-    // }
-
-    // oss << ")";
+    oss << square_to_coord(from_sq) << square_to_coord(to_sq);
+    uint32_t flags = get_flags(move);
+    if (flags & KNIGHT_PROMO) {
+        oss << "k";
+    } else if (flags & BISHOP_PROMO) {
+        oss << "b";
+    } else if (flags & ROOK_PROMO) {
+        oss << "r";
+    } else if (flags & QUEEN_PROMO) {
+        oss << "q";
+    }
     return oss.str();
 }
 

@@ -29,9 +29,18 @@ int q_search(Position *p, int alpha, int beta) {
     uint32_t noisy_flags = MoveFlags::CAPTURE | MoveFlags::PROMO;
 
     std::vector<uint32_t> noisy_moves;
+
+    std::vector<uint32_t> moves = generate_legal_moves(p);
         
-    for (uint32_t m: generate_legal_moves(p)) {
+    for (uint32_t m: moves) {
         if (get_flags(m) & noisy_flags) noisy_moves.push_back(m);
+        else {
+            move(p, m);
+            if (is_in_check(p, (Player) (1 - p->player_to_move))) {
+                    noisy_moves.push_back(m);
+            }
+            unmove(p, m);
+        }
     }
 
     std::sort(noisy_moves.begin(), noisy_moves.end(),

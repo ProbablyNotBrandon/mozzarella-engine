@@ -48,6 +48,9 @@ inline int pop_lsb(uint64_t &bb) {
 }
 #endif
 
+// Translate a standard coordinate string into a square number (0 - 63).
+int coord_to_sq(std::string str);
+
 // Translate a square number to a standard coordinate string.
 std::string square_to_coord(int sq);
 

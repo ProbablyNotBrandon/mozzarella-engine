@@ -2,9 +2,15 @@
 
 uint64_t _ZOBRIST_ARR[781];
 
+bool ZOB_INIT = false;
+
 
 Position init_position(std::string fen) {
-    init_zobrist();
+    if (!ZOB_INIT) {
+        ZOB_INIT = true;
+        init_zobrist();
+    }
+
     Position p;
 
     // Zero out the bitboards
