@@ -1,6 +1,6 @@
-CPPFLAGS = -g -Wall -Wextra -Werror 
+CPPFLAGS = -pg -Wall -Wextra -Werror 
 
-CORE_OBJS = castling_rights.o chess_utils.o evaluation.o move_generation.o move_pick.o move.o piece.o player.o position.o search.o
+CORE_OBJS = chess_utils.o evaluation.o move_generation.o move_pick.o move.o piece.o player.o position.o search.o
 
 all: main perft perft_divide uci
 

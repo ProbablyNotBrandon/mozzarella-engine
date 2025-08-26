@@ -11,7 +11,7 @@ uint32_t find_best_move(Position *p, int depth) {
 
     for (uint32_t m: moves) {
         move(p, m);
-        int score = -search(p, depth - 1, -MATE_SCORE, MATE_SCORE);
+        int score = -search(p, depth - 1, 0, -MATE_SCORE, MATE_SCORE);
         log << "Searching move: " << move_to_string(m) << "\tScore: " << score << std::endl;
         unmove(p, m);
 

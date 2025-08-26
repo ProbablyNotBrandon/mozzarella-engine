@@ -56,7 +56,7 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char * argv[]) {
 
         uint32_t black_move = black_moves[random_index];
 
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
         std::cout << "Black plays: " << move_to_string(black_move) << "\n";
         move(&p, black_move);

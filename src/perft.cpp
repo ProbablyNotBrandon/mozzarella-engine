@@ -3,11 +3,7 @@
 
 #include <iostream>
 #include <cassert>
-
-
 #include <string>
-
-
 
 std::string STARTPOS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -19,27 +15,21 @@ long perft(Position *p, int depth) {
 
     long total = 0;
     for (uint32_t m: moves) {
-        int eval_pre = p->pst_eval;
         move(p, m);
         long count = perft(p, depth - 1);
         total += count;
         unmove(p, m);
-        int eval_post = p->pst_eval;
-        assert(eval_pre == eval_post);
     }
 
     return total;
 }
 
 
-
 int main(int argc, char* argv[]) {
     if (argc != 2) return -1;
     std::cout << "Running standard perft\n";
     int DEPTH = std::stoi(argv[1]);
-    // std::string FEN = argv[2];
 
-    // Position p = init_position(FEN);
     Position p = init_position(STARTPOS);
 
     long exp_perft[] = {1, 20, 400, 8902, 197281, 4865609, 119060324, 3195901860};
@@ -48,7 +38,6 @@ int main(int argc, char* argv[]) {
         std::cout << "Depth: " << i << "\tNodes: " << perft(&p, i) << "\t\tExpected: " << exp_perft[i] << "\n";
     }
 
-    /*
     std::cout << "\nPosition 2\n";
 
     std::string pos2 = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
@@ -87,6 +76,5 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i <= 5; i++) {
         std::cout << "Depth: " << i << "\tNodes: " << perft(&p5, i) << "\t\tExpected: " << pos5_exp[i] << "\n";
     }
-    */
 }
 

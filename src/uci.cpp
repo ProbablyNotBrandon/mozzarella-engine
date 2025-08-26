@@ -31,7 +31,7 @@ void uci_loop() {
         }
         else if (line.rfind("go", 0) == 0) {
             // Example: "go depth 5"
-            int depth = 2;
+            int depth = 4;
             size_t depth_idx = line.find("depth");
             if (depth_idx != std::string::npos) {
                 depth = std::stoi(line.substr(depth_idx + 6));
@@ -40,7 +40,6 @@ void uci_loop() {
             uint32_t best = find_best_move(&pos, depth);
             move(&pos, best);
             std::cout << "bestmove " << move_to_string(best) << std::endl;
-            render_board(&pos);
         }
         else if (line == "quit") {
             break;

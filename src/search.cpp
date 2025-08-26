@@ -17,30 +17,23 @@ int mvv_lva(uint32_t m) {
     return 0;
 }
 
-int q_search(Position *p, int alpha, int beta) {
-    int best_score = evaluate(p);
-    // if (depth == 0) return best_score;
+int q_search(Position *p, int ply, int alpha, int beta) {
+    
+    int static_eval_white = evaluate(p);
+    
+    int best_score = (p->player_to_move == Player::WHITE) ? static_eval_white : -static_eval_white;
 
     if (best_score >= beta) return best_score;
     if (best_score > alpha) alpha = best_score;
-
-    // bool in_check = is_in_check(p, p->player_to_move);
 
     uint32_t noisy_flags = MoveFlags::CAPTURE | MoveFlags::PROMO;
 
     std::vector<uint32_t> noisy_moves;
 
     std::vector<uint32_t> moves = generate_legal_moves(p);
-        
+
     for (uint32_t m: moves) {
         if (get_flags(m) & noisy_flags) noisy_moves.push_back(m);
-        else {
-            move(p, m);
-            if (is_in_check(p, (Player) (1 - p->player_to_move))) {
-                    noisy_moves.push_back(m);
-            }
-            unmove(p, m);
-        }
     }
 
     std::sort(noisy_moves.begin(), noisy_moves.end(),
@@ -48,7 +41,7 @@ int q_search(Position *p, int alpha, int beta) {
 
     for (uint32_t m: noisy_moves) {
         move(p, m);
-        int score = q_search(p, -beta, -alpha);
+        int score = -q_search(p, ply + 1, -beta, -alpha);
         unmove(p, m);
 
         if (score > beta) return score;
@@ -59,23 +52,23 @@ int q_search(Position *p, int alpha, int beta) {
     return alpha;
 }
 
-int search(Position *p, int depth, int alpha, int beta) {
-
-    std::vector<uint32_t> moves = generate_legal_moves(p);
-
+int search(Position *p, int depth, int ply, int alpha, int beta) {
+    
     uint64_t z = zobrist(p);
     TTEntry entry = TT[z % TT_SIZE];
-    if (entry.key == z and entry.depth > depth) {
+    if (entry.key == z and entry.depth >= depth) {
         if (entry.flag == TTEntry::EXACT) return entry.score;
         else if (entry.flag == TTEntry::LOWER and entry.score >= beta) return entry.score;
         else if (entry.flag == TTEntry::UPPER and entry.score <= alpha) return entry.score;
     }
-    
 
-    if (depth == 0) return q_search(p, alpha, beta);
+    std::vector<uint32_t> moves = generate_legal_moves(p);
+
+    if (depth == 0) return (p->player_to_move == Player::WHITE) ? evaluate(p) : -evaluate(p);
+    // return q_search(p, ply, alpha, beta);
 
     if (moves.empty()) {
-        if (is_in_check(p, p->player_to_move)) return -MATE_SCORE + (6 - depth); // Checkmate
+        if (is_in_check(p, p->player_to_move)) return -MATE_SCORE + ply; // Checkmate
         else return 0; // Stalemate
     }
 
@@ -97,7 +90,7 @@ int search(Position *p, int depth, int alpha, int beta) {
     for (std::vector<uint32_t> move_set: {capture_moves, non_capture_moves}) {
         for (uint32_t m: move_set) {
             move(p, m);
-            int score = -search(p, depth - 1, -beta, -alpha);
+            int score = -search(p, depth - 1, ply + 1, -beta, -alpha);
             unmove(p, m);
 
             if (score > alpha) alpha = score;
