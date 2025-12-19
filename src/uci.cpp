@@ -1,10 +1,8 @@
 #include "uci_utils.h"
 
-// Global state
-Position pos;
-
 void uci_loop() {
     std::string line;
+    Position pos;
 
     while (std::getline(std::cin, line)) {
         if (line == "uci") {
@@ -16,7 +14,7 @@ void uci_loop() {
             std::cout << "readyok" << std::endl;
         }
         else if (line == "position startpos") {
-            pos = init_position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+            pos = Position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
         }
         else if (line.rfind("position", 0) == 0) {
             size_t moves_idx = line.find("moves");
@@ -26,7 +24,7 @@ void uci_loop() {
                 std::string move_str;
                 while (iss >> move_str);
                 uint32_t m = parse_move(pos, move_str);
-                move(&pos, m);
+                pos.move(m);
             }
         }
         else if (line.rfind("go", 0) == 0) {
@@ -38,7 +36,7 @@ void uci_loop() {
             }
 
             uint32_t best = find_best_move(&pos, depth);
-            move(&pos, best);
+            pos.move(best);
             std::cout << "bestmove " << move_to_string(best) << std::endl;
         }
         else if (line == "quit") {

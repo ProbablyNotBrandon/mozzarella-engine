@@ -1,6 +1,6 @@
 CPPFLAGS = -pg -Wall -Wextra -Werror 
 
-CORE_OBJS = chess_utils.o evaluation.o move_generation.o move_pick.o move.o piece.o player.o position.o search.o
+CORE_OBJS = chess_utils.o evaluation.o move_generation.o move_pick.o move.o piece.o player.o position.o search.o tt.o
 
 all: main perft perft_divide uci
 
@@ -16,7 +16,7 @@ perft_divide: perft_divide.o ${CORE_OBJS}
 uci: uci.o uci_utils.o ${CORE_OBJS}
 	g++ ${CPPFLAGS} $^ -o $@
 
-%.o: %.cpp castling_rights.h chess_utils.h evaluation.h move_generation.h move_pick.h move.h piece.h player.h position.h search.h uci_utils.h
+%.o: %.cpp castling_rights.h chess_utils.h evaluation.h move_generation.h move_pick.h move.h piece.h player.h position.h search.h tt.h uci_utils.h
 	g++ ${CPPFLAGS} -c $<
 
 clean:

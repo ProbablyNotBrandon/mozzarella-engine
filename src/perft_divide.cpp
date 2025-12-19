@@ -20,10 +20,10 @@ int perft_new(Position *p, int depth) {
 
     int total = 0;
     for (uint32_t m: moves) {
-        move(p, m);
+        p->move(m);
         int count = perft_new(p, depth - 1);
         total += count;
-        unmove(p, m);
+        p->unmove(m);
     }
 
     return total;
@@ -35,9 +35,9 @@ void perft_divide(Position *p, int depth) {
     int total = 0;
 
     for (uint32_t m : moves) {
-        move(p, m);
+        p->move(m);
         int count = perft_new(p, depth - 1);
-        unmove(p, m);
+        p->unmove(m);
         std::cout << move_to_string(m) << ": " << count << "\n";
         total += count;
     }
@@ -50,7 +50,7 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char* argv[]) {
     int DEPTH = std::stoi(argv[1]);
     std::string FEN = argv[2];
 
-    Position p = init_position(FEN);
+    Position p = Position(FEN);
     
 
     perft_divide(&p, DEPTH);

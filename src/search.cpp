@@ -39,9 +39,9 @@ int q_search(Position *p, int ply, int alpha, int beta) {
               [&](uint32_t x, uint32_t y) {return mvv_lva(x) > mvv_lva(y);});
 
     for (uint32_t m: noisy_moves) {
-        move(p, m);
+        p->move(m);
         int score = -q_search(p, ply + 1, -beta, -alpha);
-        unmove(p, m);
+        p->unmove(m);
 
         if (score > beta) return score;
 
@@ -53,7 +53,7 @@ int q_search(Position *p, int ply, int alpha, int beta) {
 
 int search(Position *p, int depth, int ply, int alpha, int beta) {
     
-    uint64_t z = zobrist(p);
+    uint64_t z = p->zobrist();
     TTEntry entry = TT[z % TT_SIZE];
     if (entry.key == z && entry.depth >= depth) {
         if (entry.flag == TTEntry::EXACT) return entry.score;
@@ -88,9 +88,9 @@ int search(Position *p, int depth, int ply, int alpha, int beta) {
 
     for (std::vector<uint32_t> move_set: {capture_moves, non_capture_moves}) {
         for (uint32_t m: move_set) {
-            move(p, m);
+            p->move(m);
             int score = -search(p, depth - 1, ply + 1, -beta, -alpha);
-            unmove(p, m);
+            p->unmove(m);
 
             if (score > alpha) alpha = score;
             

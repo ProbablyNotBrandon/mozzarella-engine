@@ -13,7 +13,7 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char * argv[]) {
     // Clear move logs
     std::ofstream("log", std::ios::trunc).close();
 
-    Position p = init_position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    Position p = Position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     render_board(&p);
 
     int move_count = 0;
@@ -35,7 +35,7 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char * argv[]) {
         if (!best) {break;}
 
         std::cout << "White plays: " << move_to_string(best) << "\n";
-        move(&p, best);
+        p.move(best);
 
         render_board(&p);
 
@@ -46,7 +46,7 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char * argv[]) {
         // if (!best) {break;}
 
         // std::cout << "Black plays: " << move_to_string(best) << "\n";
-        // move(&p, best);
+        // p.move(best);
 
         std::vector<uint32_t> black_moves = generate_legal_moves(&p);
         if (black_moves.empty()) break;
@@ -59,7 +59,7 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char * argv[]) {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
         std::cout << "Black plays: " << move_to_string(black_move) << "\n";
-        move(&p, black_move);
+        p.move(black_move);
 
         render_board(&p);
         move_count++;

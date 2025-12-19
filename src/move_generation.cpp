@@ -98,31 +98,31 @@ std::vector<uint32_t> generate_legal_moves(Position *p) {
 
     for (auto gen : generators) {
         for (uint32_t m : gen(p)) {
-            move(p, m);
+            p->move(m);
             if (!is_in_check(p, player)) legal_moves.push_back(m);
-            unmove(p, m);
+            p->unmove(m);
         }
     }
 
     if (!is_in_check(p, player)) {
         for (uint32_t m : generate_castle_moves(p)) {
-            move(p, m);
+            p->move(m);
             if (!is_in_check(p, player)) legal_moves.push_back(m);
-            unmove(p, m);
+            p->unmove(m);
         }
     }
 
     for (uint32_t m : generate_king_moves(p)) {
-        move(p, m);
+        p->move(m);
         if (!is_in_check(p, player)) legal_moves.push_back(m);
-        unmove(p, m);
+        p->unmove(m);
     }
 
     return legal_moves;
 }
 
 std::vector<uint32_t> generate_castle_moves(Position *p) {
-    uint64_t all_occupied = get_occupied(p, Player::WHITE) | get_occupied(p, Player::BLACK);
+    uint64_t all_occupied = p->get_occupied(Player::WHITE) | p->get_occupied(Player::BLACK);
     
     std::vector<uint32_t> moves;
     
@@ -166,7 +166,7 @@ std::vector<uint32_t> generate_en_passant_moves(Position *p) {
     std::vector<uint32_t> moves;
 
     if (!(p->move_stack.empty()) && get_flags(p->move_stack.back()) == MoveFlags::DOUBLE_PAWN_PUSH) {
-        uint64_t occupied = (get_occupied(p, Player::WHITE) | get_occupied(p, Player::BLACK));
+        uint64_t occupied = (p->get_occupied(Player::WHITE) | p->get_occupied(Player::BLACK));
         
         int push_to_sq = get_to_sq(p->move_stack.back());
         int to_sq = push_to_sq + (1 - 2 * (p->player_to_move)) * 8;
@@ -190,8 +190,8 @@ std::vector<uint32_t> generate_pawn_moves(Position *p) {
     Player player = p->player_to_move;
     Player opponent = Player (1 - player);
 
-    uint64_t occupied = get_occupied(p, player);
-    uint64_t opponent_occupied = get_occupied(p, opponent);
+    uint64_t occupied = p->get_occupied(player);
+    uint64_t opponent_occupied = p->get_occupied(opponent);
     uint64_t all_occupied = occupied | opponent_occupied;
     uint64_t pawn_bb = p->bitboards[p->player_to_move][Piece::PAWN];
 
@@ -263,8 +263,8 @@ std::vector<uint32_t> generate_knight_moves(Position *p) {
     Player player = p->player_to_move;
     Player opponent = (Player) (1 - p->player_to_move);
 
-    uint64_t occupied = get_occupied(p, player);
-    uint64_t opponent_occupied = get_occupied(p, opponent);
+    uint64_t occupied = p->get_occupied(player);
+    uint64_t opponent_occupied = p->get_occupied(opponent);
 
     std::vector<uint32_t> moves;
 
@@ -305,10 +305,10 @@ std::vector<uint32_t> generate_king_moves(Position *p) {
 
     std::vector<int> to_sqs;
 
-    uint64_t king_move_bb = KING_MOVE_MASKS[king_sq] & ~get_occupied(p, p->player_to_move);
+    uint64_t king_move_bb = KING_MOVE_MASKS[king_sq] & ~(p->get_occupied(p->player_to_move));
 
-    uint64_t non_captures = king_move_bb & ~get_occupied(p, opponent);
-    uint64_t captures = KING_MOVE_MASKS[king_sq] & get_occupied(p, opponent);
+    uint64_t non_captures = king_move_bb & ~(p->get_occupied(opponent));
+    uint64_t captures = KING_MOVE_MASKS[king_sq] & p->get_occupied(opponent);
     
     std::vector<uint32_t> moves;
 
@@ -351,8 +351,8 @@ std::vector<uint32_t> generate_sliding_moves(Position *p, Piece piece, int delta
     Player player = p->player_to_move;
     Player opponent = (Player) (1 - player);
 
-    uint64_t occupied = get_occupied(p, player);
-    uint64_t opponent_occupied = get_occupied(p, opponent);
+    uint64_t occupied = p->get_occupied(player);
+    uint64_t opponent_occupied = p->get_occupied(opponent);
 
     std::vector<uint32_t> moves;
 
@@ -428,7 +428,7 @@ bool is_in_sliding_check(Position* p, Player player) {
     uint64_t opp_bishops_and_queens = p->bitboards[opponent][Piece::BISHOP] | p->bitboards[opponent][Piece::QUEEN];
     uint64_t opp_rooks_and_queens   = p->bitboards[opponent][Piece::ROOK] | p->bitboards[opponent][Piece::QUEEN];
 
-    uint64_t all_occupied = (get_occupied(p, Player::WHITE) | get_occupied(p, Player::BLACK));
+    uint64_t all_occupied = (p->get_occupied(Player::WHITE) | p->get_occupied(Player::BLACK));
 
     // Sliding directions
     uint64_t sliding_bbs[] = {opp_bishops_and_queens, opp_rooks_and_queens};

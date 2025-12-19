@@ -14,7 +14,6 @@
 #include "chess_utils.h"
 
 
-
 // Position struct, containing all relevant game state information
 struct Position {
     uint64_t bitboards[2][6]; // indexed with [player][piece]
@@ -28,25 +27,22 @@ struct Position {
     std::vector<uint32_t> move_stack;
     std::vector<uint8_t> castling_rights_stack; // Push/pop 2 items at a time
     std::vector<int> pst_eval_stack; // Store recent position eval
+
+    Position() : Position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") {}
+
+    Position(std::string fen);
+
+    void move(uint32_t move);
+
+    void unmove(uint32_t move);
+
+    uint64_t get_occupied(int player);
+
+    uint64_t zobrist();
 };
 
-// Initialize and return a Position struct from the given FEN string
-Position init_position(std::string fen);
 
-// Decode the encoded move and make the move, changing p's state
-void move(Position *p, uint32_t move);
-
-// Decode the encoded move and unmake the move, changing p's state
-void unmove(Position *p, uint32_t move);
-
-// Get a bitboard of all the squares occupied by the chosen player
-uint64_t get_occupied(Position *p, int player);
-
-// Initialize the Zobrist hashing array (64 random ULL numbers)
 void init_zobrist();
-
-// Returns the (64 bit) Zobrist hash of the position
-uint64_t zobrist(Position *p);
 
 
 // Piece Square Tables

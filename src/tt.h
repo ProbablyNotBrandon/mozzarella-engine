@@ -1,3 +1,6 @@
+#ifndef __TT_H__
+#define __TT_H__
+
 #include <cstdint>
 #include <cstddef>
 
@@ -24,3 +27,5 @@ private:
     int occupancy;
     TTEntry *table;
 };
+
+#endif

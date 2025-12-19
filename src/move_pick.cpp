@@ -10,10 +10,10 @@ uint32_t find_best_move(Position *p, int depth) {
     std::vector<uint32_t> moves = generate_legal_moves(p);
 
     for (uint32_t m: moves) {
-        move(p, m);
+        p->move(m);
         int score = -search(p, depth - 1, 0, -MATE_SCORE, MATE_SCORE);
         log << "Searching move: " << move_to_string(m) << "\tScore: " << score << std::endl;
-        unmove(p, m);
+        p->unmove(m);
 
         if (score > best_score) {
             best_score = score;
