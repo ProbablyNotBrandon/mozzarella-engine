@@ -135,7 +135,7 @@ std::vector<uint32_t> generate_castle_moves(Position *p) {
             p->bitboards[p->player_to_move][Piece::KING] <<= 1;
 
             if (!castle_through_check) {
-                if (p->player_to_move == Player::WHITE and !(W_QS_CASTLE_MASK & all_occupied)) {
+                if (p->player_to_move == Player::WHITE && !(W_QS_CASTLE_MASK & all_occupied)) {
                         moves.push_back(encode_move(4, 2, Piece::KING, 0, 0, MoveFlags::QUEEN_CASTLE));
                 } else if (p->player_to_move == Player::BLACK && !(B_QS_CASTLE_MASK & all_occupied)) {
                         moves.push_back(encode_move(60, 58, Piece::KING, 0, 0, MoveFlags::QUEEN_CASTLE));
@@ -150,7 +150,7 @@ std::vector<uint32_t> generate_castle_moves(Position *p) {
             p->bitboards[p->player_to_move][Piece::KING] >>= 1;
 
             if (!castle_through_check) {
-                if (p->player_to_move == Player::WHITE and !(W_KS_CASTLE_MASK & all_occupied)) {
+                if (p->player_to_move == Player::WHITE && !(W_KS_CASTLE_MASK & all_occupied)) {
                     moves.push_back(encode_move(4, 6, Piece::KING, 0, 0, KING_CASTLE));
                 } else if (p->player_to_move == Player::BLACK && !(B_KS_CASTLE_MASK & all_occupied)) {
                     moves.push_back(encode_move(60, 62, Piece::KING, 0, 0, KING_CASTLE));

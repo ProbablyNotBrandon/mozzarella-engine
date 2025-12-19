@@ -1,0 +1,26 @@
+#include <cstdint>
+#include <cstddef>
+
+enum class Bound { EXACT, LOWER, UPPER };
+
+typedef struct TTEntry {
+    uint64_t key;
+    int depth;
+    int score;
+    Bound flag;
+} TTEntry;
+
+class TranspositionTable {
+public:
+    TranspositionTable(size_t mb = 64);
+    ~TranspositionTable();
+
+    bool probe(uint64_t key, int depth, int alpha, int beta);
+    void store(uint64_t key, int depth, int score, int alpha, int beta);
+    void clear();
+
+private:
+    int size;
+    int occupancy;
+    TTEntry *table;
+};

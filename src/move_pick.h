@@ -8,17 +8,6 @@
 #include "position.h"
 #include "search.h"
 
-class TranspositionTable {
-
-
-};
-
-class MovePicker {
-
-
-
-};
-
 
 // Returns the move with the best score according to the
 // search function.

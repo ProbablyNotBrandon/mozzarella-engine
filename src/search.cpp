@@ -18,7 +18,6 @@ int mvv_lva(uint32_t m) {
 }
 
 int q_search(Position *p, int ply, int alpha, int beta) {
-    
     int static_eval_white = evaluate(p);
     
     int best_score = (p->player_to_move == Player::WHITE) ? static_eval_white : -static_eval_white;
@@ -56,10 +55,10 @@ int search(Position *p, int depth, int ply, int alpha, int beta) {
     
     uint64_t z = zobrist(p);
     TTEntry entry = TT[z % TT_SIZE];
-    if (entry.key == z and entry.depth >= depth) {
+    if (entry.key == z && entry.depth >= depth) {
         if (entry.flag == TTEntry::EXACT) return entry.score;
-        else if (entry.flag == TTEntry::LOWER and entry.score >= beta) return entry.score;
-        else if (entry.flag == TTEntry::UPPER and entry.score <= alpha) return entry.score;
+        else if (entry.flag == TTEntry::LOWER && entry.score >= beta) return entry.score;
+        else if (entry.flag == TTEntry::UPPER && entry.score <= alpha) return entry.score;
     }
 
     std::vector<uint32_t> moves = generate_legal_moves(p);
