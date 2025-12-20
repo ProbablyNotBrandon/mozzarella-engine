@@ -37,15 +37,16 @@ MovePicker::~MovePicker() {
     // TODO: implement?
 }
 
-
 /*
  * Public facing interface for the MovePicker. Returns the 32-bit encoded move which represents
  * the optimal move to make in the given position.
  *
+ * Runs minimax search with alpha-beta pruning up to a fixed depth.
+ *
  * Internally relies on search() and q_search() in order to search the game space.
  */
-uint32_t MovePicker::find_best_move(Position *p, int depth) {
-    
+uint32_t MovePicker::find_best_move_fixed_depth(Position *p, int depth) {
+
     std::ofstream log("log", std::ios::app);
 
     int best_score = INT_MIN;
@@ -66,6 +67,62 @@ uint32_t MovePicker::find_best_move(Position *p, int depth) {
     }
 
     log << "Making move " << move_to_string(best_move) << " with score " << best_score << std::endl;
+    return best_move;
+}
+
+
+/*
+ * Public facing interface for the MovePicker. Returns the 32-bit encoded move which represents
+ * the optimal move to make in the given position.
+ *
+ * Runs an iterative deepening search based on ms (the total time remaining in milliseconds).
+ *
+ * Internally relies on search() and q_search() in order to search the game space.
+ */
+uint32_t MovePicker::find_best_move(Position *p, int ms) {
+
+    start_timer(ms);
+
+    int best_score;
+    uint32_t best_move;
+
+    std::vector<uint32_t> moves = generate_legal_moves(p);
+
+    for (int depth = 1; ; depth++) {
+
+        int alpha = -MATE_SCORE;
+        int beta = MATE_SCORE;
+
+        uint32_t iter_best_move = 0;
+        int iter_best_score = INT_MIN;
+
+        for (uint32_t m: moves) {
+            // std::cout << "Checking move: " << move_to_string(m) << " at depth " << depth << std::endl;
+            if (time_up()) break;
+
+            p->move(m);
+            int score = -(this->search(p, depth - 1, 0, -beta, -alpha));
+            p->unmove(m);
+
+            if (score > iter_best_score) {
+                iter_best_score = score;
+                iter_best_move = m;
+            }
+
+            if (score > alpha)
+                alpha = score;
+        }
+
+        if (!time_up()) {
+            best_move = iter_best_move;
+            best_score = iter_best_score;
+        } else {
+            break;
+        }
+    }
+
+    (void) best_score;
+
     return best_move;
 }
 

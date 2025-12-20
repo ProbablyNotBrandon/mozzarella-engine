@@ -31,7 +31,7 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char * argv[]) {
         }
         std::cout << "White thinking...\n";
 
-        uint32_t best = mp.find_best_move(&p, 4);
+        uint32_t best = mp.find_best_move(&p, 1000);
 
         if (!best) {break;}
 

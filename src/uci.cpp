@@ -29,16 +29,44 @@ void uci_loop() {
             }
         }
         else if (line.rfind("go", 0) == 0) {
-            // Example: "go depth 5"
-            int depth = 4;
-            size_t depth_idx = line.find("depth");
-            if (depth_idx != std::string::npos) {
-                depth = std::stoi(line.substr(depth_idx + 6));
+
+            int wtime = -1, btime = -1;
+            int winc = 0, binc = 0; // currently unused
+            int movetime = -1;
+            int depth = -1;
+
+            std::istringstream iss(line);
+            std::string token;
+            iss >> token; // read "go"
+
+            // Read in all values from "go" command
+            while (iss >> token) {
+                if (token == "wtime") iss >> wtime;
+                else if (token == "btime") iss >> btime;
+                else if (token == "winc") iss >> winc;
+                else if (token == "binc") iss >> binc;
+                else if (token == "movetime") iss >> movetime;
+                else if (token == "depth") iss >> depth;
             }
 
-            uint32_t best = mp.find_best_move(&pos, depth);
-            pos.move(best);
-            std::cout << "bestmove " << move_to_string(best) << std::endl;
+            int remaining = (pos.player_to_move == Player::WHITE) ? wtime : btime;
+            int time_budget = (movetime != -1) ? movetime : (remaining > 0 ? remaining / 50 : 1000);
+
+            uint32_t best_move;
+
+            // Search either to a fixed depth depending on "go" request
+            if (depth != -1) {
+                best_move = mp.find_best_move_fixed_depth(&pos, depth);
+            } else {
+                best_move = mp.find_best_move(&pos, time_budget);
+            }
+
+            // Make the move on the internal board
+            pos.move(best_move);
+
+            // Output the move to CLI
+            std::cout << "bestmove " << move_to_string(best_move) << std::endl;
+
         }
         else if (line == "quit") {
             break;
