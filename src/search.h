@@ -1,19 +1,30 @@
 #ifndef __SEARCH_H__
 #define __SEARCH_H__
 
+#include <fstream>
+
 #include "evaluation.h"
 #include "move_generation.h"
 #include "player.h"
 #include "position.h"
+#include "tt.h"
 
 const int MATE_SCORE = 1000000;
-static size_t TT_OCCUPANCY = 0;
-constexpr size_t TT_SIZE= 1 << 20;
-struct TTEntry {
-    uint64_t key;
-    int depth;
-    int score;
-    enum bound { EXACT, LOWER, UPPER } flag;
+
+class MovePicker {
+    public:
+
+        MovePicker(int tt_mb);
+
+        ~MovePicker();
+
+        uint32_t find_best_move(Position *p, int depth);
+    private:
+
+        TranspositionTable tt;
+
+        int search(Position *p, int depth, int ply, int alpha = -MATE_SCORE, int beta = MATE_SCORE);
+        int q_search(Position *p, int ply, int alpha = INT_MIN, int beta = INT_MAX);
 };
 
 // Most Valuable Victim : Least Valuable Attacker - move ordering to get higher value moves,

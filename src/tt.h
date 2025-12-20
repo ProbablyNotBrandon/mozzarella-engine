@@ -18,7 +18,7 @@ public:
     TranspositionTable(size_t mb = 64);
     ~TranspositionTable();
 
-    bool probe(uint64_t key, int depth, int alpha, int beta);
+    bool probe(uint64_t key, int depth, int *score, int alpha, int beta);
     void store(uint64_t key, int depth, int score, int alpha, int beta);
     void clear();
 

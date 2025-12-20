@@ -25,14 +25,15 @@ TranspositionTable::~TranspositionTable() {
  * Probes the transposition table for the given Zobrist key.
  * Returns true if a usable entry exists for the current depth and alpha-beta window.
  */
-bool TranspositionTable::probe(uint64_t key, int depth, int alpha, int beta) {
+bool TranspositionTable::probe(uint64_t key, int depth, int *score, int alpha, int beta) {
     TTEntry entry = table[key % this->size];
 
     if (entry.key != key || entry.depth < depth) return false;
 
-    if (entry.flag == Bound::EXACT) return true;
-    else if (entry.flag == Bound::LOWER && entry.score >= beta) return true;
-    else if (entry.flag == Bound::UPPER && entry.score <= alpha) return true;
+    if ((entry.flag == Bound::EXACT) || (entry.flag == Bound::LOWER && entry.score >= beta) || (entry.flag == Bound::UPPER && entry.score <= alpha)) {
+        *score = entry.score;
+        return true;
+    }
 
     return false;
 }
@@ -43,7 +44,7 @@ bool TranspositionTable::probe(uint64_t key, int depth, int alpha, int beta) {
  * Determines the bound (EXACT / LOWER / UPPER) based on alpha, beta, and score.
  */
 void TranspositionTable::store(uint64_t key, int depth, int score, int alpha, int beta) {
-    TTEntry entry = table[key % this->size];
+    TTEntry &entry = table[key % this->size];
 
     if (entry.key == 0) this->occupancy++;
 

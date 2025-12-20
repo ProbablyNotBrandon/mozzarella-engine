@@ -3,6 +3,7 @@
 void uci_loop() {
     std::string line;
     Position pos;
+    MovePicker mp = MovePicker(64);
 
     while (std::getline(std::cin, line)) {
         if (line == "uci") {
@@ -35,7 +36,7 @@ void uci_loop() {
                 depth = std::stoi(line.substr(depth_idx + 6));
             }
 
-            uint32_t best = find_best_move(&pos, depth);
+            uint32_t best = mp.find_best_move(&pos, depth);
             pos.move(best);
             std::cout << "bestmove " << move_to_string(best) << std::endl;
         }

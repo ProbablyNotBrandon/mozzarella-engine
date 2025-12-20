@@ -1,5 +1,5 @@
 #include "position.h"
-#include "move_pick.h"
+#include "search.h"
 #include "chess_utils.h"
 #include "move_generation.h"
 
@@ -14,6 +14,7 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char * argv[]) {
     std::ofstream("log", std::ios::trunc).close();
 
     Position p = Position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    MovePicker mp = MovePicker(64);
     render_board(&p);
 
     int move_count = 0;
@@ -30,7 +31,7 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char * argv[]) {
         }
         std::cout << "White thinking...\n";
 
-        uint32_t best = find_best_move(&p, 4);
+        uint32_t best = mp.find_best_move(&p, 4);
 
         if (!best) {break;}
 

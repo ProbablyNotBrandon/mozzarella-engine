@@ -4,7 +4,7 @@
 #include <iostream>
 #include <string>
 #include "position.h"
-#include "move_pick.h"
+#include "search.h"
 #include "chess_utils.h"
 
 // Parse a UCI move into the engine's encoding
