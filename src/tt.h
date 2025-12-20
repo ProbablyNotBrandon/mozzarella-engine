@@ -22,8 +22,7 @@ public:
     void store(uint64_t key, int depth, int score, int alpha, int beta);
     void clear();
 
-private:
-    int size;
+    size_t size;
     int occupancy;
     TTEntry *table;
 };

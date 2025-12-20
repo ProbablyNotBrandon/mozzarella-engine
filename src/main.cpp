@@ -14,7 +14,7 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char * argv[]) {
     std::ofstream("log", std::ios::trunc).close();
 
     Position p = Position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-    MovePicker mp = MovePicker(64);
+    MovePicker mp = MovePicker(16);
     render_board(&p);
 
     int move_count = 0;
@@ -70,5 +70,4 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char * argv[]) {
     else std::cout << "STALEMATE\n";
 
     std::cout << "Moves: " << move_count++ << std::endl;
-
 }
