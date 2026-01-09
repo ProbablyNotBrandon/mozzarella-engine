@@ -7,9 +7,11 @@
 #include <iostream>
 #include <string>
 
+#include "move.h"
 #include "piece.h"
 #include "player.h"
-#include "move.h"
+#include "position.h"
+
 
 const std::map<char, Piece> _chtopc = {
     {'p', Piece::PAWN},
@@ -65,7 +67,6 @@ Piece chtopc(char c);
 
 // Splits a string based on delimiter and returns the pieces as a vector of strings (GPT CODE)
 std::vector<std::string> split_str(const std:: string& s, char delimiter);
-
 
 // Output the chess board to the console.
 void render_board(void *v);

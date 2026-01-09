@@ -1,12 +1,7 @@
-#include "position.h"
-#include "player.h"
-#include "move_generation.h"
-#include "move.h"
-
 #include <iostream>
 
-
-#include "chess_utils.h"
+#include "position.h"
+#include "move_generation.h"
 
 std::string STARTPOS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 

@@ -9,7 +9,7 @@
 #include "position.h"
 #include "piece.h"
 #include "player.h"
-#include "chess_utils.h"
+#include "utils.h"
 
 
 extern uint64_t PAWN_ADVANCE_MASKS[2][64];

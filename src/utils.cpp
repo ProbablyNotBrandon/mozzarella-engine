@@ -1,5 +1,4 @@
-#include "chess_utils.h"
-#include "position.h"
+#include "utils.h"
 
 const std::string piece_chars[2][6] = {
     { "♟", "♞", "♝", "♜", "♛", "♚" }, // White
@@ -79,7 +78,6 @@ Piece chtopc(char c) {
 }
 
 
-// GPT CODE
 // Splits a string based on delimiter and returns the pieces as a vector of strings
 std::vector<std::string> split_str(const std:: string& s, char delimiter) {
     std::vector<std::string> tokens;
@@ -96,4 +94,5 @@ std::vector<std::string> split_str(const std:: string& s, char delimiter) {
     tokens.push_back(token);
     return tokens;
 }
-// END GPT CODE
+
+
