@@ -6,6 +6,12 @@ It implements **iterative deepening minimax with alpha-beta pruning** and speaks
 
 Mozzarella also powers my public bot account on [Lichess](https://lichess.org/@/mozzarella-engine).
 
+
+## Project Goals
+
+Mozzarella is a learning-focused engine designed to explore classical search techniques and engine architecture. It prioritizes correctness and clarity over feature completeness or competitive strength.
+
+
 ## Features
 
 - Bitboard-based board representation
@@ -14,14 +20,33 @@ Mozzarella also powers my public bot account on [Lichess](https://lichess.org/@/
 - Transposition table using Zobrist hashing
 - UCI protocol support
 
+
 ## Build
 
-**TODO**
+### Requirements
+
+To build Mozzarella, you need the following tools installed on your system:
+
+- **C++17-compatible compiler** (e.g., `g++`, `clang++`, or MSVC)
+- **CMake** (version 3.15 or higher)
+
+
+### Instructions
+
+1. Clone the repository:
+`$ git clone https://github.com/ProbablyNotBrandon/mozzarella-engine`
+
+2. Switch to the `src` directory.
+
+3. Build the executable.
+
+...
+
 
 ## Usage
 Mozzarella implements the core Universal Chess Interface (UCI) protocol and can be run directly or loaded into any UCI-compatible chess GUI.
 
-Below is a minimal example of interacting with the engine via the terminal:
+Below is a minimal example of interacting with the engine via the command line:
 
 ```
 $ ./mozzarella
@@ -39,7 +64,8 @@ quit
 
 For more information on interacting with chess engines using the UCI protocol, check out [this page](https://www.wbec-ridderkerk.nl/html/UCIProtocol.html). Please note that Mozzarella does not necessarily support all commands listed on this page.
 
-For interactive play or analysis, add the `mozzarella` executable as a UCI engine in a compatible chess GUI (e.g. Arena, Cute Chess, Scid vs. PC etc.). Once loaded, the engine accepts standard UCI commands such as `position` and `go depth N`.
+> For interactive play or analysis, add the `mozzarella` executable as a UCI engine in a compatible chess GUI (e.g. Arena, Cute Chess, Scid vs. PC). Once loaded, the engine accepts standard UCI commands such as `position` and `go depth N`.
+
 
 ## Project Roadmap
 
