@@ -27,20 +27,22 @@ Mozzarella is a learning-focused engine designed to explore classical search tec
 
 To build Mozzarella, you need the following tools installed on your system:
 
-- **C++17-compatible compiler** (e.g., `g++`, `clang++`, or MSVC)
-- **CMake** (version 3.15 or higher)
-
+- **C++17-compatible compiler** (e.g., g++, clang++, or MSVC)
+- **Make** (version 4.0 or higher)
 
 ### Instructions
 
 1. Clone the repository:
-`$ git clone https://github.com/ProbablyNotBrandon/mozzarella-engine`
 
-2. Switch to the `src` directory.
+   `$ git clone https://github.com/ProbablyNotBrandon/mozzarella-engine`
 
-3. Build the executable.
+3. Switch to the `src` directory:
 
-...
+   `$ cd mozzarella-engine/src`
+
+5. Build the executable by running:
+
+   `$ make mozzarella`
 
 
 ## Usage
